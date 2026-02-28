@@ -1,0 +1,179 @@
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import api from "../services/api";
+
+export const IMG_BASE = "http://localhost:8080";
+
+const EMPTY_FORM = {
+  name:        "",
+  sku:         "",
+  barcode:     "",
+  category_id: "",
+  brand:       "",
+  description: "",
+  cost_price:  "",
+  sell_price:  "",
+  stock:       "0",
+  alert_stock: "5",
+  gst_percent: "0",
+  price_type:  "exclusive",
+};
+
+/**
+ * Hook for the Add / Edit Product page.
+ * Handles form state, two-level category selection, image upload/removal,
+ * live GST breakdown, and form submission.
+ *
+ * Reads :id (shopId) and optional :productId from the URL.
+ * Must be used inside a route that has a :id segment.
+ */
+export const useAddEditProduct = () => {
+  const { id: shopId, productId } = useParams();
+  const navigate = useNavigate();
+  const isEdit   = Boolean(productId);
+
+  const [form,          setForm]          = useState(EMPTY_FORM);
+  const [allCategories, setAllCategories] = useState([]);
+  const [parentCatId,   setParentCatId]   = useState("");
+  const [imageFile,     setImageFile]     = useState(null);
+  const [imagePreview,  setImagePreview]  = useState(null);
+  const [existingImage, setExistingImage] = useState(null);
+  const [removeImage,   setRemoveImage]   = useState(false);
+  const [loading,       setLoading]       = useState(isEdit);
+  const [saving,        setSaving]        = useState(false);
+  const [error,         setError]         = useState(null);
+
+  // ── Derived category lists ─────────────────────────────────────────
+  const parentCats = allCategories.filter((c) => !c.parent_id || c.parent_id === "0");
+  const subCats    = allCategories.filter((c) => String(c.parent_id) === String(parentCatId));
+
+  // ── Fetch flat category list ───────────────────────────────────────
+  const fetchCategories = useCallback(async () => {
+    try {
+      const res = await api.get("/api/categories/flat");
+      setAllCategories(res.data?.categories || []);
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => { fetchCategories(); }, [fetchCategories]);
+
+  // ── Load existing product when editing ────────────────────────────
+  useEffect(() => {
+    if (!isEdit) return;
+    setLoading(true);
+    api.get(`/api/products/${productId}`)
+      .then((res) => {
+        const p = res.data?.product || res.data;
+        if (!p) return;
+
+        setForm({
+          name:        p.name        || "",
+          sku:         p.sku         || "",
+          barcode:     p.barcode     || "",
+          category_id: p.category_id || "",
+          brand:       p.brand       || "",
+          description: p.description || "",
+          cost_price:  p.cost_price  || "",
+          sell_price:  p.sell_price  || "",
+          stock:       String(p.stock       ?? "0"),
+          alert_stock: String(p.alert_stock ?? "5"),
+          gst_percent: String(p.gst_percent ?? "0"),
+          price_type:  p.price_type  || "exclusive",
+        });
+
+        if (p.category_parent_id) {
+          setParentCatId(String(p.category_parent_id));
+        } else if (p.category_id) {
+          setParentCatId(String(p.category_id));
+        }
+
+        if (p.image) setExistingImage(`${IMG_BASE}/${p.image}`);
+      })
+      .catch(() => setError("Failed to load product."))
+      .finally(() => setLoading(false));
+  }, [isEdit, productId]);
+
+  // ── Field change ──────────────────────────────────────────────────
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // ── Two-level category handlers ───────────────────────────────────
+  const handleParentCatChange = (e) => {
+    const val = e.target.value;
+    setParentCatId(val);
+    setForm((prev) => ({ ...prev, category_id: val }));
+  };
+
+  const handleSubCatChange = (e) => {
+    const val = e.target.value;
+    setForm((prev) => ({ ...prev, category_id: val || parentCatId }));
+  };
+
+  // ── Image handlers ────────────────────────────────────────────────
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+    setRemoveImage(false);
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setExistingImage(null);
+    setRemoveImage(true);
+  };
+
+  // ── Live GST breakdown ─────────────────────────────────────────────
+  const sellPrice = parseFloat(form.sell_price) || 0;
+  const gstRate   = parseFloat(form.gst_percent) || 0;
+  const priceExcl = form.price_type === "inclusive"
+    ? sellPrice / (1 + gstRate / 100) : sellPrice;
+  const priceIncl = form.price_type === "exclusive"
+    ? sellPrice * (1 + gstRate / 100) : sellPrice;
+  const gstAmount = priceIncl - priceExcl;
+
+  // ── Submit ────────────────────────────────────────────────────────
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    if (!form.name.trim()) { setError("Product name is required."); return; }
+    if (!form.sell_price)  { setError("Sell price is required.");   return; }
+
+    setSaving(true);
+    try {
+      const fd = new FormData();
+      Object.entries(form).forEach(([k, v]) => fd.append(k, v ?? ""));
+      if (imageFile)   fd.append("image",        imageFile);
+      if (removeImage) fd.append("remove_image", "1");
+
+      if (isEdit) {
+        await api.put(`/api/products/${productId}`, fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      } else {
+        await api.post("/api/products", fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      }
+      navigate(`/shop/${shopId}/products`);
+    } catch (err) {
+      setError(err.response?.data?.error || "Failed to save product.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return {
+    shopId, isEdit, form, setForm,
+    parentCats, subCats, parentCatId,
+    imagePreview, existingImage,
+    loading, saving, error,
+    priceExcl, priceIncl, gstAmount, gstRate,
+    handleChange, handleParentCatChange, handleSubCatChange,
+    handleImageChange, handleRemoveImage, handleSubmit,
+  };
+};
