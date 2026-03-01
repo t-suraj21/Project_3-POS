@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import api from "../services/api";
 
-export const IMG_BASE = "http://localhost:8080";
+export const IMG_BASE = "";
 
 /**
  * Hook for the Products list page.

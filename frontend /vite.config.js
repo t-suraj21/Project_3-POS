@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
-    strictPort: true,
+    strictPort: false,
     proxy: {
       // Proxy /api/* → PHP built-in server (php -S localhost:8888 index.php)
       '/api': {

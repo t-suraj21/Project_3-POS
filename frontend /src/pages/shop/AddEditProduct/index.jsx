@@ -28,6 +28,9 @@ const AddEditProduct = () => {
     priceExcl, priceIncl, gstAmount, gstRate,
     handleChange, handleParentCatChange, handleSubCatChange,
     handleImageChange, handleRemoveImage, handleSubmit,
+    catModal, catModalMode, newCatName, setNewCatName,
+    newCatSaving, newCatError,
+    openCatModal, closeCatModal, createCategory,
   } = useAddEditProduct();
 
   if (loading) return <div style={s.page}><p style={{ color: "#6b7280" }}>Loading…</p></div>;
@@ -160,42 +163,78 @@ const AddEditProduct = () => {
           <div style={s.sectionBody}>
 
             <div style={s.grid3}>
-              {/* Category — top-level only */}
+              {/* ── Category (parent) ── */}
               <Field label="Category" required>
-                <select
-                  style={s.select}
-                  value={parentCatId}
-                  onChange={handleParentCatChange}
-                >
-                  <option value="">Select category</option>
-                  {parentCats.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+                  <select
+                    style={{ ...s.select, flex: 1 }}
+                    value={parentCatId}
+                    onChange={handleParentCatChange}
+                  >
+                    <option value="">
+                      {parentCats.length === 0 ? "No categories yet — click + New" : "Select category"}
+                    </option>
+                    {parentCats.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    style={s.addCatBtn}
+                    onClick={() => openCatModal("parent")}
+                    title="Create a new category"
+                  >
+                    + New
+                  </button>
+                </div>
+                {parentCatId && (
+                  <div style={s.catPath}>
+                    📂{" "}
+                    {parentCats.find((c) => String(c.id) === String(parentCatId))?.name}
+                    {subCats.some((c) => String(c.id) === String(form.category_id)) && (
+                      <> &rsaquo; {subCats.find((c) => String(c.id) === String(form.category_id))?.name}</>
+                    )}
+                  </div>
+                )}
               </Field>
 
-              {/* Sub category — children of selected category */}
+              {/* ── Sub category ── */}
               <Field label="Sub category">
-                <select
-                  style={{
-                    ...s.select,
-                    opacity: !parentCatId ? 0.5 : 1,
-                    cursor: !parentCatId ? "not-allowed" : "pointer",
-                  }}
-                  disabled={!parentCatId}
-                  value={subCats.some((c) => String(c.id) === String(form.category_id))
-                    ? form.category_id : ""}
-                  onChange={handleSubCatChange}
-                >
-                  <option value="">
-                    {subCats.length === 0 && parentCatId
-                      ? "No sub-categories"
-                      : "Select sub category"}
-                  </option>
-                  {subCats.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+                  <select
+                    style={{
+                      ...s.select,
+                      flex: 1,
+                      opacity: !parentCatId ? 0.5 : 1,
+                      cursor: !parentCatId ? "not-allowed" : "pointer",
+                    }}
+                    disabled={!parentCatId}
+                    value={subCats.some((c) => String(c.id) === String(form.category_id))
+                      ? form.category_id : ""}
+                    onChange={handleSubCatChange}
+                  >
+                    <option value="">
+                      {!parentCatId
+                        ? "Select category first"
+                        : subCats.length === 0
+                        ? "No sub-categories yet"
+                        : "Select sub category"}
+                    </option>
+                    {subCats.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  {parentCatId && (
+                    <button
+                      type="button"
+                      style={s.addCatBtn}
+                      onClick={() => openCatModal("sub")}
+                      title="Create sub-category under selected category"
+                    >
+                      + New
+                    </button>
+                  )}
+                </div>
               </Field>
 
               {/* Brand — free text */}
@@ -358,6 +397,64 @@ const AddEditProduct = () => {
         </div>
 
       </form>
+
+      {/* ══ Inline Category Creation Modal ═══════════════════════════ */}
+      {catModal && (
+        <div style={s.modalOverlay} onClick={closeCatModal}>
+          <div style={s.modalBox} onClick={(e) => e.stopPropagation()}>
+
+            <div style={s.modalHead}>
+              {catModalMode === "parent" ? "🗂 Add New Category" : "📁 Add New Sub-Category"}
+            </div>
+
+            {catModalMode === "sub" && parentCatId && (
+              <div style={s.modalSub}>
+                Under parent:{" "}
+                <strong>{parentCats.find((c) => String(c.id) === String(parentCatId))?.name}</strong>
+              </div>
+            )}
+
+            <input
+              style={s.input}
+              autoFocus
+              placeholder={
+                catModalMode === "parent"
+                  ? "e.g. Electronics, Grocery, Clothing…"
+                  : "e.g. Mobiles, Snacks, T-Shirts…"
+              }
+              value={newCatName}
+              onChange={(e) => setNewCatName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter")  { e.preventDefault(); createCategory(); }
+                if (e.key === "Escape") closeCatModal();
+              }}
+            />
+
+            {newCatError && <div style={s.modalError}>{newCatError}</div>}
+
+            <div style={s.modalActions}>
+              <button
+                type="button"
+                style={s.modalCancelBtn}
+                onClick={closeCatModal}
+                disabled={newCatSaving}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                style={s.modalSaveBtn(newCatSaving)}
+                onClick={createCategory}
+                disabled={newCatSaving}
+              >
+                {newCatSaving ? "Creating…" : "Create"}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

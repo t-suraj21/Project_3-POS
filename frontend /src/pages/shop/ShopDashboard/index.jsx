@@ -32,16 +32,40 @@ const ShopDashboard = () => {
   const { stats, loading, error } = useShopDashboard();
   const { id } = useParams();
 
-  if (loading) return <div style={s.page}><p style={{ color: "#6b7280" }}>Loading dashboard…</p></div>;
-  if (error)   return <div style={s.page}><p style={{ color: "#dc2626" }}>{error}</p></div>;
+  const today = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+  if (loading) return (
+    <div style={{ ...s.page, paddingTop: "3rem", textAlign: "center" }}>
+      <div style={{ color: "#6366f1", fontSize: "2rem", marginBottom: "0.75rem" }}>⏳</div>
+      <p style={{ color: "#94a3b8", fontWeight: 500 }}>Loading dashboard…</p>
+    </div>
+  );
+  if (error) return (
+    <div style={{ ...s.page, paddingTop: "3rem", textAlign: "center" }}>
+      <p style={{ color: "#dc2626" }}>{error}</p>
+    </div>
+  );
 
   return (
     <div style={s.page}>
-      <h1 style={s.heading}>Dashboard</h1>
-      <p  style={s.sub}>Welcome back! Here's your shop overview.</p>
+
+      {/* ── Hero ─────────────────────────────────────────────── */}
+      <div style={s.hero}>
+        <div>
+          <h1 style={s.heroTitle}>Welcome back! 👋</h1>
+          <p style={s.heroSub}>Here's what's happening in your shop today.</p>
+        </div>
+        <div style={s.heroBadge}>📅 {today}</div>
+        {/* decorative circles */}
+        <div style={{ position: "absolute", right: "-30px", top: "-30px", width: "160px", height: "160px", borderRadius: "50%", background: "rgba(255,255,255,0.05)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", right: "60px", bottom: "-50px", width: "110px", height: "110px", borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
+      </div>
 
       {/* ── Overview row ── */}
-      <p style={s.sectionLabel}>Overview</p>
+      <div style={s.sectionLabel}>
+        <span>Overview</span>
+        <span style={s.sectionDivider} />
+      </div>
       <div style={s.statsGrid}>
         {OVERVIEW_CARDS.map(({ key, label, icon, bg, color }) => (
           <div key={key} style={s.statCard}>
@@ -55,22 +79,28 @@ const ShopDashboard = () => {
       </div>
 
       {/* ── Sales row ── */}
-      <p style={s.sectionLabel}>Total Sales</p>
+      <div style={s.sectionLabel}>
+        <span>Total Sales</span>
+        <span style={s.sectionDivider} />
+      </div>
       <div style={s.periodGrid}>
         {SALES_PERIODS.map(({ key, label, suffix }) => (
-          <div key={key} style={s.periodCard}>
+          <div key={key} style={{ ...s.periodCard, borderTop: "3px solid #10b981" }}>
             <p style={s.periodPeriod}>{label}</p>
-            <p style={s.periodValue}>{num(stats?.[key])}</p>
+            <p style={{ ...s.periodValue, color: "#059669" }}>{num(stats?.[key])}</p>
             <p style={s.periodSub}>{suffix}</p>
           </div>
         ))}
       </div>
 
       {/* ── Revenue row ── */}
-      <p style={s.sectionLabel}>Revenue</p>
+      <div style={s.sectionLabel}>
+        <span>Revenue</span>
+        <span style={s.sectionDivider} />
+      </div>
       <div style={s.periodGrid}>
         {REVENUE_PERIODS.map(({ key, label }) => (
-          <div key={key} style={{ ...s.periodCard, borderBottom: `3px solid #4f46e5` }}>
+          <div key={key} style={{ ...s.periodCard, borderTop: "3px solid #4f46e5" }}>
             <p style={s.periodPeriod}>{label}</p>
             <p style={{ ...s.periodValue, color: "#4f46e5" }}>{fmt(stats?.[key])}</p>
           </div>
@@ -79,15 +109,15 @@ const ShopDashboard = () => {
 
       {/* ── Low Stock table ── */}
       <div style={s.section}>
-        <p style={s.sectionTitle}>
-          <span>⚠️</span> Low Stock Alerts
+        <div style={s.sectionHeader}>
+          <span style={s.sectionTitle}><span>⚠️</span> Low Stock Alerts</span>
           <Link
             to={`/shop/${id}/products?low_stock=1`}
-            style={{ marginLeft: "auto", fontSize: "0.8rem", color: "#4f46e5", textDecoration: "none", fontWeight: 600 }}
+            style={{ fontSize: "0.8rem", color: "#4f46e5", textDecoration: "none", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.25rem" }}
           >
             View all →
           </Link>
-        </p>
+        </div>
 
         {!stats?.low_stock_items?.length ? (
           <p style={s.emptyRow}>🎉 All products are well stocked!</p>

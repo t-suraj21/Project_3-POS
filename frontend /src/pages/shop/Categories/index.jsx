@@ -1,7 +1,7 @@
 import { useCategories } from "../../../hooks/useCategories";
 import s from "./styles";
 
-const IMG_BASE = "http://localhost:8080";
+const IMG_BASE = "";
 
 const Categories = () => {
   const {

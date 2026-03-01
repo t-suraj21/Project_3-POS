@@ -5,6 +5,7 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import Login          from "./Auth/Login";
 import RegisterShop   from "./Auth/RegisterShop";
 import ForgotPassword from "./Auth/ForgotPassword";
+import ResetPassword  from "./Auth/ResetPassword";
 
 // SuperAdmin pages
 import SuperDashboard from "./pages/super/SuperDashboard";
@@ -19,6 +20,10 @@ import Categories        from "./pages/shop/Categories";
 import SubCategories     from "./pages/shop/SubCategories";
 import AccountManagement from "./pages/shop/AccountManagement";
 import CustomerDetail    from "./pages/shop/CustomerDetail";
+import Sales             from "./pages/shop/Sales";
+import Orders            from "./pages/shop/Orders";
+import ShopSettings    from "./pages/shop/ShopSettings";
+import Reports         from "./pages/shop/Reports";
 import ShopLayout     from "./components/ShopLayout";
 
 /** Layout route: protects all /shop/:id/* paths and injects the sidebar */
@@ -40,6 +45,7 @@ function App() {
           <Route path="/login"           element={<Login />} />
           <Route path="/register"        element={<RegisterShop />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password"  element={<ResetPassword />} />
 
           {/* ── SuperAdmin routes ────────────────────────────────────────── */}
           <Route
@@ -77,6 +83,13 @@ function App() {
             <Route path="/shop/:id/sub-categories"                  element={<SubCategories />} />
             <Route path="/shop/:id/accounts"                        element={<AccountManagement />} />
             <Route path="/shop/:id/accounts/:customerId"            element={<CustomerDetail />} />
+            <Route path="/shop/:id/sales"                           element={<Sales />} />
+            <Route path="/shop/:id/orders"           element={<Orders filter="all" />} />
+            <Route path="/shop/:id/orders/completed" element={<Orders filter="completed" />} />
+            <Route path="/shop/:id/orders/pending"   element={<Orders filter="pending" />} />
+            <Route path="/shop/:id/orders/refunded"  element={<Orders filter="refunded" />} />
+            <Route path="/shop/:id/settings"             element={<ShopSettings />} />
+            <Route path="/shop/:id/reports"              element={<Reports />} />
           </Route>
 
           {/* ── Cashier routes ───────────────────────────────────────────── */}

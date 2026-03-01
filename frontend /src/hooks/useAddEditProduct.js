@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 
-export const IMG_BASE = "http://localhost:8080";
+export const IMG_BASE = "";
 
 const EMPTY_FORM = {
   name:        "",
@@ -42,6 +42,13 @@ export const useAddEditProduct = () => {
   const [loading,       setLoading]       = useState(isEdit);
   const [saving,        setSaving]        = useState(false);
   const [error,         setError]         = useState(null);
+
+  // ── Inline category creation modal ────────────────────────────────
+  const [catModal,     setCatModal]     = useState(false);         // open/close
+  const [catModalMode, setCatModalMode] = useState("parent");      // 'parent' | 'sub'
+  const [newCatName,   setNewCatName]   = useState("");
+  const [newCatSaving, setNewCatSaving] = useState(false);
+  const [newCatError,  setNewCatError]  = useState(null);
 
   // ── Derived category lists ─────────────────────────────────────────
   const parentCats = allCategories.filter((c) => !c.parent_id || c.parent_id === "0");
@@ -111,6 +118,49 @@ export const useAddEditProduct = () => {
     setForm((prev) => ({ ...prev, category_id: val || parentCatId }));
   };
 
+  // ── Inline category creation ──────────────────────────────────────
+  const openCatModal = (mode) => {
+    setCatModalMode(mode);
+    setNewCatName("");
+    setNewCatError(null);
+    setCatModal(true);
+  };
+  const closeCatModal = () => { setCatModal(false); setNewCatError(null); };
+
+  const createCategory = async () => {
+    if (!newCatName.trim()) { setNewCatError("Category name is required."); return; }
+    setNewCatSaving(true);
+    setNewCatError(null);
+    try {
+      const body = { name: newCatName.trim() };
+      if (catModalMode === "sub" && parentCatId) body.parent_id = parentCatId;
+
+      const res = await api.post("/api/categories", body);
+      const created = res.data?.category;
+
+      // Re-fetch full category list so the new entry appears
+      const listRes = await api.get("/api/categories/flat");
+      const updated = listRes.data?.categories || [];
+      setAllCategories(updated);
+
+      // Auto-select newly created category
+      if (created) {
+        if (catModalMode === "parent") {
+          setParentCatId(String(created.id));
+          setForm((prev) => ({ ...prev, category_id: String(created.id) }));
+        } else {
+          // sub: parent already set, just pick the sub
+          setForm((prev) => ({ ...prev, category_id: String(created.id) }));
+        }
+      }
+      setCatModal(false);
+    } catch (err) {
+      setNewCatError(err.response?.data?.error || "Failed to create category.");
+    } finally {
+      setNewCatSaving(false);
+    }
+  };
+
   // ── Image handlers ────────────────────────────────────────────────
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
@@ -151,7 +201,10 @@ export const useAddEditProduct = () => {
       if (removeImage) fd.append("remove_image", "1");
 
       if (isEdit) {
-        await api.put(`/api/products/${productId}`, fd, {
+        // PHP does not populate $_POST/$_FILES for PUT multipart requests.
+        // Use POST with a _method override instead.
+        fd.append("_method", "PUT");
+        await api.post(`/api/products/${productId}`, fd, {
           headers: { "Content-Type": "multipart/form-data" },
         });
       } else {
@@ -175,5 +228,9 @@ export const useAddEditProduct = () => {
     priceExcl, priceIncl, gstAmount, gstRate,
     handleChange, handleParentCatChange, handleSubCatChange,
     handleImageChange, handleRemoveImage, handleSubmit,
+    // inline category creation
+    catModal, catModalMode, newCatName, setNewCatName,
+    newCatSaving, newCatError,
+    openCatModal, closeCatModal, createCategory,
   };
 };

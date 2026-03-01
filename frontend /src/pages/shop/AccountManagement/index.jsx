@@ -24,25 +24,27 @@ const AccountManagement = () => {
   return (
     <div style={s.page}>
       {/* ── Page Header ─────────────────────────────────────────────── */}
-      <h1 style={s.heading}>Account Management</h1>
-      <p style={s.subheading}>Manage Udhar (Credit) customers and track outstanding balances</p>
+      <div style={{ marginBottom: "1.5rem" }}>
+        <h1 style={s.heading}>Account Management</h1>
+        <p style={s.subheading}>All customers — billing history, paid amount &amp; outstanding balance</p>
+      </div>
 
       {/* ── Summary Cards ────────────────────────────────────────────── */}
       {summary && (
         <div style={s.statsRow}>
-          <div style={s.statCard("#ede9fe", "#4f46e5")}>
+          <div style={s.statCard("#ede9fe", "#6366f1")}>
             <span style={s.statLabel}>Total Customers</span>
             <span style={s.statValue("#4f46e5")}>{summary.total_customers ?? 0}</span>
           </div>
-          <div style={s.statCard("#fef2f2", "#dc2626")}>
+          <div style={s.statCard("#fef2f2", "#ef4444")}>
             <span style={s.statLabel}>Total Outstanding</span>
             <span style={s.statValue("#dc2626")}>{fmt(summary.total_outstanding)}</span>
           </div>
-          <div style={s.statCard("#f0fdf4", "#16a34a")}>
+          <div style={s.statCard("#f0fdf4", "#22c55e")}>
             <span style={s.statLabel}>Total Collected</span>
             <span style={s.statValue("#16a34a")}>{fmt(summary.total_collected)}</span>
           </div>
-          <div style={s.statCard("#eff6ff", "#2563eb")}>
+          <div style={s.statCard("#eff6ff", "#3b82f6")}>
             <span style={s.statLabel}>Pending / Cleared</span>
             <span style={s.statValue("#2563eb")}>{summary.pending_customers ?? 0} / {summary.cleared_customers ?? 0}</span>
           </div>
@@ -54,7 +56,7 @@ const AccountManagement = () => {
         <div style={s.searchWrap}>
           <input
             style={s.searchInput}
-            placeholder="Search by name or phone…"
+            placeholder="🔍  Search by name or phone…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -67,7 +69,7 @@ const AccountManagement = () => {
         </button>
 
         <button style={s.addBtn} onClick={openAddModal}>
-          <span>＋</span> Add Customer
+          <span style={{ fontSize: "1rem" }}>＋</span> Add Customer
         </button>
       </div>
 
@@ -75,7 +77,7 @@ const AccountManagement = () => {
       <div style={s.tableCard}>
         <div style={s.tableHead}>
           <div>
-            <span style={s.tableTitle}>Credit Customer List</span>
+            <span style={s.tableTitle}>All Customers</span>
             <span style={s.countBadge}>{customers.length}</span>
           </div>
         </div>
@@ -86,7 +88,7 @@ const AccountManagement = () => {
         ) : customers.length === 0 ? (
           <div style={s.empty}>
             <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>👥</div>
-            No credit customers found. Add one to get started!
+            No customers found. Customers are automatically added when a sale is completed with a name.
           </div>
         ) : (
           <table style={s.table}>
@@ -94,9 +96,9 @@ const AccountManagement = () => {
               <tr>
                 <th style={s.th}>SL</th>
                 <th style={s.th}>Customer</th>
-                <th style={s.th}>Total Credit</th>
+                <th style={s.th}>Total Billed</th>
                 <th style={s.th}>Total Paid</th>
-                <th style={s.th}>Balance</th>
+                <th style={s.th}>Balance Due</th>
                 <th style={s.th}>Status</th>
                 <th style={s.th}>Action</th>
               </tr>

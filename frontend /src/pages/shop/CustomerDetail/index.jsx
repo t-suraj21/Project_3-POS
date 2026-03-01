@@ -30,91 +30,111 @@ const CustomerDetail = () => {
   const hasBalance = parseFloat(customer.remaining_balance) > 0;
 
   return (
-    <div style={{ padding: "1.5rem", maxWidth: 1100, margin: "0 auto" }}>
-      {/* ── Header ──────────────────────────────────────────────── */}
-      <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.5rem" }}>
-        <button style={s.backBtn} onClick={() => navigate(`/shop/${shopId}/accounts`)}>
-          ← Back
-        </button>
-        <h2 style={{ margin: 0, fontSize: "1.35rem", fontWeight: 700, color: "#1e293b" }}>
-          Customer Account
-        </h2>
-      </div>
+    <div style={{ padding: "1.75rem 2rem 2.5rem", maxWidth: 1100, margin: "0 auto", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
 
-      {/* ── Info + Summary ────────────────────────────────────── */}
-      <div style={s.detailGrid}>
-        {/* Left: customer info */}
-        <div style={s.infoCard}>
-          <div style={s.infoCardTitle}>👤 {customer.name}</div>
+      {/* ── Back ────────────────────────────────────────────────── */}
+      <button style={s.backBtn} onClick={() => navigate(`/shop/${shopId}/accounts`)}>
+        ← Back to Customers
+      </button>
 
-          <div style={s.infoRow}>
-            <span style={s.infoLabel}>Phone</span>
-            <span style={s.infoValue}>{customer.phone}</span>
-          </div>
-          {customer.address && (
-            <div style={s.infoRow}>
-              <span style={s.infoLabel}>Address</span>
-              <span style={s.infoValue}>{customer.address}</span>
-            </div>
-          )}
-          <div style={s.infoRow}>
-            <span style={s.infoLabel}>Status</span>
-            <span style={s.statusBadge(customer.status === "cleared")}>
-              {customer.status === "cleared" ? "Cleared ✓" : "Pending"}
+      {/* ── Profile Hero Card ────────────────────────────────────── */}
+      <div style={{
+        background: "linear-gradient(120deg, #4f46e5 0%, #7c3aed 100%)",
+        borderRadius: "20px",
+        padding: "1.75rem 2rem",
+        marginBottom: "1.5rem",
+        display: "grid",
+        gridTemplateColumns: "auto 1fr auto",
+        gap: "1.5rem",
+        alignItems: "center",
+        boxShadow: "0 8px 30px rgba(79,70,229,0.28)",
+        position: "relative",
+        overflow: "hidden",
+      }}>
+        {/* Decorative circles */}
+        <div style={{ position: "absolute", right: "-40px", top: "-40px", width: "180px", height: "180px", borderRadius: "50%", background: "rgba(255,255,255,0.06)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", right: "80px", bottom: "-60px", width: "130px", height: "130px", borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
+
+        {/* Avatar */}
+        <div style={{
+          width: "72px", height: "72px", borderRadius: "18px",
+          background: "rgba(255,255,255,0.2)", border: "2px solid rgba(255,255,255,0.3)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: "#fff", fontWeight: 900, fontSize: "2rem", flexShrink: 0,
+        }}>
+          {customer.name[0].toUpperCase()}
+        </div>
+
+        {/* Info */}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+            <h2 style={{ margin: 0, fontSize: "1.45rem", fontWeight: 800, color: "#fff" }}>{customer.name}</h2>
+            <span style={{
+              background: customer.status === "cleared" ? "rgba(134,239,172,0.2)" : "rgba(254,202,202,0.2)",
+              border: "1px solid " + (customer.status === "cleared" ? "rgba(134,239,172,0.4)" : "rgba(254,202,202,0.4)"),
+              color: customer.status === "cleared" ? "#86efac" : "#fca5a5",
+              borderRadius: "9999px", padding: "0.2rem 0.75rem",
+              fontSize: "0.73rem", fontWeight: 700,
+            }}>
+              {customer.status === "cleared" ? "✓ Cleared" : "⏳ Pending"}
             </span>
           </div>
-          <div style={s.infoRow}>
-            <span style={s.infoLabel}>Total Credit</span>
-            <span style={s.infoValue}>{fmt(customer.total_credit)}</span>
+          <div style={{ display: "flex", gap: "1.25rem", marginTop: "0.5rem", flexWrap: "wrap" }}>
+            <span style={{ color: "rgba(255,255,255,0.72)", fontSize: "0.875rem" }}>📞 {customer.phone}</span>
+            {customer.address && <span style={{ color: "rgba(255,255,255,0.72)", fontSize: "0.875rem" }}>📍 {customer.address}</span>}
           </div>
-          <div style={s.infoRow}>
-            <span style={s.infoLabel}>Total Paid</span>
-            <span style={{ ...s.infoValue, color: "#16a34a", fontWeight: 600 }}>{fmt(customer.total_paid)}</span>
-          </div>
-          <div style={s.infoRow}>
-            <span style={s.infoLabel}>Balance Due</span>
-            <span style={s.balanceValue(hasBalance)}>{fmt(customer.remaining_balance)}</span>
-          </div>
+        </div>
 
-          {hasBalance && (
-            <div style={s.balanceAlert}>
-              ⚠ Outstanding balance of {fmt(customer.remaining_balance)} pending.
-            </div>
-          )}
-          {!hasBalance && (
-            <div style={s.clearedAlert}>✓ All dues cleared.</div>
-          )}
-
-          <div style={{ display: "flex", gap: "0.75rem", marginTop: "1.25rem" }}>
+        {/* Balance + Actions */}
+        <div style={{ textAlign: "right", flexShrink: 0 }}>
+          <div style={{ color: "rgba(255,255,255,0.65)", fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "0.25rem" }}>Balance Due</div>
+          <div style={{ fontSize: "1.75rem", fontWeight: 900, color: hasBalance ? "#fca5a5" : "#86efac" }}>
+            {fmt(customer.remaining_balance)}
+          </div>
+          <div style={{ display: "flex", gap: "0.6rem", marginTop: "0.75rem", justifyContent: "flex-end" }}>
             {hasBalance && (
-              <button style={s.payBtn} onClick={openPayModal}>
+              <button
+                style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: "10px", padding: "0.5rem 1.1rem", cursor: "pointer", fontWeight: 700, fontSize: "0.82rem", backdropFilter: "blur(4px)" }}
+                onClick={openPayModal}
+              >
                 💳 Add Payment
               </button>
             )}
             <button
-              style={{ ...s.payBtn, background: "#0ea5e9" }}
+              style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: "10px", padding: "0.5rem 1.1rem", cursor: "pointer", fontWeight: 700, fontSize: "0.82rem", backdropFilter: "blur(4px)" }}
               onClick={openTxnModal}
             >
-              + Add Transaction
+              ＋ Add Transaction
             </button>
           </div>
         </div>
-
-        {/* Right: quick stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", alignContent: "start" }}>
-          {[
-            { label: "Transactions", value: transactions.length, bg: "#f0f9ff", color: "#0369a1" },
-            { label: "Payments",     value: payments.length,     bg: "#f0fdf4", color: "#15803d" },
-            { label: "Total Credit", value: fmt(customer.total_credit), bg: "#fff7ed", color: "#c2410c" },
-            { label: "Outstanding",  value: fmt(customer.remaining_balance), bg: hasBalance ? "#fef2f2" : "#f0fdf4", color: hasBalance ? "#dc2626" : "#15803d" },
-          ].map((c) => (
-            <div key={c.label} style={{ ...s.statCard(c.bg, c.color), margin: 0 }}>
-              <div style={s.statLabel}>{c.label}</div>
-              <div style={s.statValue(c.color)}>{c.value}</div>
-            </div>
-          ))}
-        </div>
       </div>
+
+      {/* ── Quick Stats Row ───────────────────────────────────── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem", marginBottom: "1.75rem" }}>
+        {[
+          { label: "Transactions",  value: transactions.length,                   bg: "#f0f9ff", color: "#0284c7", icon: "📋" },
+          { label: "Payments",      value: payments.length,                        bg: "#f0fdf4", color: "#15803d", icon: "💳" },
+          { label: "Total Credit",  value: fmt(customer.total_credit),             bg: "#fff7ed", color: "#c2410c", icon: "📈" },
+          { label: "Total Paid",    value: fmt(customer.total_paid),               bg: "#f0fdf4", color: "#15803d", icon: "✅" },
+        ].map((c) => (
+          <div key={c.label} style={{
+            background: "#fff", borderRadius: "16px",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9",
+            padding: "1.1rem 1.3rem", borderTop: `3px solid ${c.color}`,
+          }}>
+            <div style={{ fontSize: "0.68rem", fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em" }}>{c.icon} {c.label}</div>
+            <div style={{ fontSize: "1.35rem", fontWeight: 800, color: c.color, marginTop: "0.3rem" }}>{c.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Balance alert strip ───────────────────────────────── */}
+      {hasBalance ? (
+        <div style={s.balanceAlert}>⚠ Outstanding balance of {fmt(customer.remaining_balance)} is pending.</div>
+      ) : (
+        <div style={s.clearedAlert}>✓ All dues are cleared. Great!</div>
+      )}
 
       {/* ── Transactions ─────────────────────────────────────── */}
       <div style={s.sectionCard}>
@@ -124,7 +144,7 @@ const CustomerDetail = () => {
         </div>
 
         {transactions.length === 0 ? (
-          <p style={{ color: "#9ca3af", padding: "1rem 0" }}>No transactions recorded yet.</p>
+          <div style={{ textAlign: "center", padding: "3rem 1rem", color: "#94a3b8", fontSize: "0.9rem" }}>📋 No transactions recorded yet.</div>
         ) : (
           <div style={{ overflowX: "auto" }}>
             <table style={s.table}>
@@ -202,7 +222,7 @@ const CustomerDetail = () => {
         </div>
 
         {payments.length === 0 ? (
-          <p style={{ color: "#9ca3af", padding: "1rem 0" }}>No payments recorded yet.</p>
+          <div style={{ textAlign: "center", padding: "3rem 1rem", color: "#94a3b8", fontSize: "0.9rem" }}>💳 No payments recorded yet.</div>
         ) : (
           <div style={{ overflowX: "auto" }}>
             <table style={s.table}>

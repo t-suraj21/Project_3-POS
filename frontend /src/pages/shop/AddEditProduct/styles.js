@@ -415,6 +415,111 @@ const s = {
 
   spanFull: { gridColumn: "1 / -1" },
   fieldGroupFull: { display: "flex", flexDirection: "column", gap: "0.35rem", gridColumn: "1 / -1" },
+
+  // ── Inline category "+ New" button ───────────────────────────────
+  addCatBtn: {
+    flexShrink: 0,
+    padding: "0.42rem 0.75rem",
+    fontSize: "0.78rem",
+    fontWeight: 700,
+    background: "#f0f4ff",
+    color: "#1a56db",
+    border: "1.5px solid #c7d7f9",
+    borderRadius: "7px",
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    fontFamily: "inherit",
+  },
+
+  // ── Selected category path breadcrumb ────────────────────────────
+  catPath: {
+    marginTop: "0.38rem",
+    fontSize: "0.78rem",
+    color: "#1a56db",
+    background: "#f0f4ff",
+    border: "1px solid #c7d7f9",
+    borderRadius: "6px",
+    padding: "0.28rem 0.62rem",
+    display: "inline-block",
+    maxWidth: "100%",
+  },
+
+  // ── Category Creation Modal overlay ──────────────────────────────
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(17,24,39,0.40)",
+    zIndex: 1000,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  modalBox: {
+    background: "#fff",
+    borderRadius: "14px",
+    boxShadow: "0 8px 32px rgba(17,24,39,0.18)",
+    padding: "1.6rem 1.8rem 1.4rem",
+    width: "100%",
+    maxWidth: "400px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.9rem",
+  },
+
+  modalHead: {
+    fontSize: "1rem",
+    fontWeight: 700,
+    color: "#111827",
+    margin: 0,
+  },
+
+  modalSub: {
+    fontSize: "0.82rem",
+    color: "#6b7280",
+    background: "#f4f7fb",
+    borderRadius: "6px",
+    padding: "0.35rem 0.65rem",
+  },
+
+  modalError: {
+    fontSize: "0.8rem",
+    color: "#dc2626",
+    background: "#fef2f2",
+    border: "1px solid #fecaca",
+    borderRadius: "6px",
+    padding: "0.35rem 0.65rem",
+  },
+
+  modalActions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "0.6rem",
+  },
+
+  modalCancelBtn: {
+    padding: "0.5rem 1.1rem",
+    borderRadius: "7px",
+    border: "1px solid #e0e7ef",
+    background: "#fff",
+    color: "#374151",
+    cursor: "pointer",
+    fontWeight: 600,
+    fontSize: "0.88rem",
+    fontFamily: "inherit",
+  },
+
+  modalSaveBtn: (disabled) => ({
+    padding: "0.5rem 1.4rem",
+    borderRadius: "7px",
+    border: "none",
+    background: disabled ? "#93c5fd" : "#1a56db",
+    color: "#fff",
+    cursor: disabled ? "not-allowed" : "pointer",
+    fontWeight: 700,
+    fontSize: "0.88rem",
+    fontFamily: "inherit",
+  }),
 };
 
 export default s;
