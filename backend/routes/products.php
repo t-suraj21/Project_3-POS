@@ -14,12 +14,16 @@ if ($uri === '/api/products') {
     if ($method === 'POST') { ProductController::create($user);    exit; }
 }
 
-// GET|PUT|DELETE /api/products/:id
+// GET|POST(_method=PUT)|PUT|DELETE /api/products/:id
 if (preg_match('#^/api/products/(\d+)$#', $uri, $m)) {
     $user = verifyRole('shop_admin');
     $id   = (int) $m[1];
     if ($method === 'GET')    { ProductController::getOne($user, $id);   exit; }
-    if ($method === 'PUT')    { ProductController::update($user, $id);   exit; }
+    // Support POST with _method=PUT override (PHP doesn't parse $_POST for PUT multipart)
+    if ($method === 'PUT' || ($method === 'POST' && ($_POST['_method'] ?? '') === 'PUT')) {
+        ProductController::update($user, $id);
+        exit;
+    }
     if ($method === 'DELETE') { ProductController::delete($user, $id);   exit; }
 }
 

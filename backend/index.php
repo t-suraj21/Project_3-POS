@@ -72,6 +72,24 @@ if (str_starts_with($uri, '/api/accounts')) {
     exit;
 }
 
+// Shop Admin – sales  →  /api/sales/*
+if (str_starts_with($uri, '/api/sales')) {
+    require_once __DIR__ . "/routes/sales.php";
+    exit;
+}
+
+// Shop Admin – settings  →  /api/settings/*
+if (str_starts_with($uri, '/api/settings')) {
+    require_once __DIR__ . "/routes/settings.php";
+    exit;
+}
+
+// Shop Admin – reports  →  /api/reports/*
+if (str_starts_with($uri, '/api/reports')) {
+    require_once __DIR__ . "/routes/reports.php";
+    exit;
+}
+
 // 404 – no matching route
 http_response_code(404);
 echo json_encode(["message" => "Route not found"]);

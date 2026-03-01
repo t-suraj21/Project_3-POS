@@ -311,4 +311,105 @@ class AuthController
             "email_sent" => true,
         ]);
     }
+
+
+    // ─── POST /api/auth/forgot-password ──────────────────────────────────────
+    public static function forgotPassword(): void
+    {
+        global $conn;
+
+        $data  = json_decode(file_get_contents("php://input"));
+        $email = trim($data->email ?? '');
+
+        if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            http_response_code(422);
+            echo json_encode(["message" => "A valid email address is required."]);
+            return;
+        }
+
+        // Always return same generic message to prevent email enumeration
+        $generic = "If that email is registered, a password reset link has been sent.";
+
+        $stmt = $conn->prepare("SELECT id, name, is_verified FROM users WHERE email = ?");
+        $stmt->execute([$email]);
+        $user = $stmt->fetch();
+
+        if (!$user || !$user['is_verified']) {
+            http_response_code(200);
+            echo json_encode(["message" => $generic]);
+            return;
+        }
+
+        // Generate a secure 64-char hex token (32 random bytes)
+        $token     = bin2hex(random_bytes(32));
+        $expiresAt = date('Y-m-d H:i:s', time() + 1800); // 30 minutes
+
+        $stmt = $conn->prepare(
+            "UPDATE users SET reset_token = ?, reset_token_expires_at = ? WHERE id = ?"
+        );
+        $stmt->execute([$token, $expiresAt, $user['id']]);
+
+        // Build frontend reset URL using APP_URL from .env (works on any device/phone)
+        $appUrl   = rtrim($_ENV['APP_URL'] ?? 'http://localhost:5173', '/');
+        $resetUrl = "{$appUrl}/reset-password?token={$token}";
+
+        Mailer::sendPasswordReset($email, $user['name'], $resetUrl);
+
+        http_response_code(200);
+        echo json_encode(["message" => $generic]);
+    }
+
+
+    // ─── POST /api/auth/reset-password ───────────────────────────────────────
+    public static function resetPassword(): void
+    {
+        global $conn;
+
+        $data     = json_decode(file_get_contents("php://input"));
+        $token    = trim($data->token    ?? '');
+        $password = trim($data->password ?? '');
+
+        if (!$token) {
+            http_response_code(422);
+            echo json_encode(["message" => "Reset token is required."]);
+            return;
+        }
+
+        if (strlen($password) < 6) {
+            http_response_code(422);
+            echo json_encode(["message" => "Password must be at least 6 characters."]);
+            return;
+        }
+
+        $stmt = $conn->prepare(
+            "SELECT id, reset_token_expires_at FROM users WHERE reset_token = ?"
+        );
+        $stmt->execute([$token]);
+        $user = $stmt->fetch();
+
+        if (!$user) {
+            http_response_code(400);
+            echo json_encode(["message" => "Invalid or already-used reset link. Please request a new one."]);
+            return;
+        }
+
+        if (strtotime($user['reset_token_expires_at']) < time()) {
+            http_response_code(410);
+            echo json_encode(["message" => "This reset link has expired. Please request a new one.", "expired" => true]);
+            return;
+        }
+
+        // Update password and clear the token so it can't be reused
+        $hashed = password_hash($password, PASSWORD_BCRYPT);
+        $stmt   = $conn->prepare(
+            "UPDATE users
+             SET password = ?, reset_token = NULL, reset_token_expires_at = NULL
+             WHERE id = ?"
+        );
+        $stmt->execute([$hashed, $user['id']]);
+
+        http_response_code(200);
+        echo json_encode(["message" => "Password updated successfully! You can now sign in."]);
+    }
 }
+

@@ -39,4 +39,16 @@ if ($uri === '/api/auth/me' && $method === 'GET') {
     AuthController::me();
     exit;
 }
+
+// POST /api/auth/forgot-password
+if ($uri === '/api/auth/forgot-password' && $method === 'POST') {
+    AuthController::forgotPassword();
+    exit;
+}
+
+// POST /api/auth/reset-password
+if ($uri === '/api/auth/reset-password' && $method === 'POST') {
+    AuthController::resetPassword();
+    exit;
+}
 ?>

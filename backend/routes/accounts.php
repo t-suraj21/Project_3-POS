@@ -7,6 +7,13 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'OPTIONS') { http_response_code(204); exit; }
 
+// GET /api/accounts  (alias → customers list, used by billing dropdown)
+if ($uri === '/api/accounts' && $method === 'GET') {
+    $user = verifyRole('shop_admin');
+    AccountController::getCustomers($user);
+    exit;
+}
+
 // GET /api/accounts/summary
 if ($uri === '/api/accounts/summary' && $method === 'GET') {
     $user = verifyRole('shop_admin');

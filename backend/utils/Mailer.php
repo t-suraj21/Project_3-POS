@@ -92,6 +92,113 @@ class Mailer
     }
 
 
+    /**
+     * Send a password-reset link email.
+     *
+     * @param  string $toEmail    Recipient email
+     * @param  string $ownerName  User's full name
+     * @param  string $resetUrl   Full URL containing the reset token
+     * @return bool
+     */
+    public static function sendPasswordReset(
+        string $toEmail,
+        string $ownerName,
+        string $resetUrl
+    ): bool {
+        $subject = "Reset your POS password";
+        $html    = self::passwordResetTemplate($ownerName, $resetUrl);
+        return self::send($toEmail, $ownerName, $subject, $html);
+    }
+
+
+    // ── Private: Password-reset email template ────────────────────────────────
+    private static function passwordResetTemplate(
+        string $name,
+        string $resetUrl
+    ): string {
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reset Your Password</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f6f8;font-family:'Segoe UI',Arial,sans-serif;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;padding:40px 0;">
+    <tr>
+      <td align="center">
+
+        <table width="520" cellpadding="0" cellspacing="0"
+               style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+
+          <!-- Header -->
+          <tr>
+            <td align="center"
+                style="background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);padding:36px 40px;">
+              <div style="font-size:40px;margin-bottom:8px;">🔑</div>
+              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.3px;">
+                Password Reset Request
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:36px 40px;text-align:left;">
+              <p style="margin:0 0 12px;font-size:16px;color:#374151;line-height:1.6;">
+                Hi <strong>{$name}</strong> 👋
+              </p>
+              <p style="margin:0 0 28px;font-size:15px;color:#6b7280;line-height:1.7;">
+                We received a request to reset your POS System password.
+                Click the button below to set a new password. This link expires in <strong>30 minutes</strong>.
+              </p>
+
+              <!-- CTA Button -->
+              <table cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td align="center">
+                    <a href="{$resetUrl}" target="_blank"
+                       style="display:inline-block;background:linear-gradient(135deg,#4f46e5,#7c3aed);
+                              color:#ffffff;text-decoration:none;font-weight:700;font-size:16px;
+                              padding:14px 40px;border-radius:10px;letter-spacing:0.2px;
+                              box-shadow:0 4px 14px rgba(79,70,229,0.4);">
+                      Reset My Password →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:28px 0 0;font-size:13px;color:#9ca3af;line-height:1.7;">
+                If the button doesn't work, copy and paste this URL into your browser:<br />
+                <a href="{$resetUrl}" style="color:#4f46e5;word-break:break-all;">{$resetUrl}</a>
+              </p>
+
+              <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0 20px;" />
+
+              <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.6;">
+                If you didn't request a password reset, you can safely ignore this email.<br />
+                Your password will not be changed until you click the link above.
+              </p>
+              <p style="margin:12px 0 0;font-size:12px;color:#9ca3af;">
+                © POS System &nbsp;·&nbsp; This is an automated email, please do not reply.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+HTML;
+    }
+
+
     // ── Private: OTP email template ───────────────────────────────────────────
     private static function otpTemplate(
         string $name,
