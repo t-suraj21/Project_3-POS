@@ -9,10 +9,11 @@ const imgSrc = (img) => img ? `/uploads/products/${img.replace("uploads/products
 
 /* ── payment mode config ─────────────────────────────────────────────── */
 const PAY_MODES = [
-  { key: "cash",   label: "Cash"   },
-  { key: "upi",    label: "UPI"    },
-  { key: "card",   label: "Card"   },
-  { key: "credit", label: "Credit" },
+  { key: "cash",   label: "Cash"       },
+  { key: "upi",    label: "UPI"        },
+  { key: "card",   label: "Card"       },
+  { key: "credit", label: "Credit"     },
+  { key: "online", label: "🔒 Online"  },  // Razorpay gateway
 ];
 
 /* ── dollar-style formatter for billing section ───────────────── */
@@ -153,6 +154,17 @@ const ReceiptModal = ({ receipt, shopId, onNewSale }) => {
           </div>
         )}
 
+        {receipt.paymentMode === "online" && receipt.paymentId && (
+          <div style={{
+            background: "#f0fdf4", border: "1px solid #86efac",
+            borderRadius: "7px", padding: "0.45rem 0.8rem",
+            fontSize: "0.78rem", color: "#166534", textAlign: "center",
+            marginBottom: "0.5rem",
+          }}>
+            💳 Razorpay ID: <strong>{receipt.paymentId}</strong>
+          </div>
+        )}
+
         {/* Status + payment mode badges */}
         <div style={{ marginTop: "0.75rem", textAlign: "center", display: "flex", justifyContent: "center", gap: "0.5rem", flexWrap: "wrap" }}>
           <span style={{
@@ -224,8 +236,11 @@ const Sales = () => {
     paymentMode, setPaymentMode,
     paidAmount, setPaidAmount,
     note, setNote,
+    upiRef, setUpiRef,
+    cardRef, setCardRef,
     subtotal, productDiscount, taxTotal, grandTotal, change,
     submitting, checkoutErr, handleCheckout,
+    handleOnlineCheckout, rzProcessing,
     handlePaymentModeChange,
     receipt, setReceipt,
   } = useSales();
@@ -535,14 +550,103 @@ const Sales = () => {
                 ))}
               </div>
 
-              {/* Cash partial payment hint */}
+              {/* ─────── MODE-SPECIFIC PANELS ─────────────────────────── */}
+
+              {/* CASH: partial payment tip */}
               {paymentMode === "cash" && (
-                <div style={{ fontSize: "0.7rem", color: "#6b7280", background: "#f9fafb", borderRadius: "6px", padding: "0.3rem 0.6rem" }}>
-                  💡 Enter less than total to record a partial payment — balance will be tracked in Accounts.
+                <div style={{ fontSize: "0.72rem", color: "#6b7280", background: "#f9fafb", borderRadius: "8px", padding: "0.5rem 0.75rem", border: "1px solid #e5e7eb" }}>
+                  💡 Enter less than total for a partial payment — balance is tracked in Accounts.
                 </div>
               )}
 
-              {/* Paid Amount */}
+              {/* UPI: app badges + UTR reference input */}
+              {paymentMode === "upi" && (
+                <div style={{ background: "#f0fdf4", border: "1.5px solid #86efac", borderRadius: "10px", padding: "0.75rem 0.9rem", display: "flex", flexDirection: "column", gap: "0.55rem" }}>
+                  <div style={{ fontWeight: 700, fontSize: "0.8rem", color: "#15803d" }}>
+                    📱 UPI Payment — Full amount collected automatically
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
+                    {["Google Pay", "PhonePe", "Paytm", "BHIM", "Amazon Pay"].map(app => (
+                      <span key={app} style={{ background: "#dcfce7", color: "#166534", fontSize: "0.7rem", fontWeight: 700, padding: "0.15rem 0.55rem", borderRadius: "999px", border: "1px solid #86efac" }}>{app}</span>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+                    <label style={{ fontSize: "0.74rem", fontWeight: 600, color: "#374151" }}>UTR / Transaction Reference <span style={{ color: "#9ca3af", fontWeight: 400 }}>(optional)</span></label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 123456789012"
+                      value={upiRef}
+                      onChange={e => setUpiRef(e.target.value)}
+                      style={{ padding: "0.5rem 0.75rem", border: "1.5px solid #86efac", borderRadius: "8px", fontSize: "0.85rem", outline: "none", background: "#fff", color: "#111827", letterSpacing: "0.05em" }}
+                    />
+                  </div>
+                  <div style={{ fontSize: "0.68rem", color: "#6b7280" }}>
+                    ✔ Ask customer to scan your UPI QR code. Enter the UTR from their payment screenshot for records.
+                  </div>
+                </div>
+              )}
+
+              {/* CARD: transaction ref + last 4 digits */}
+              {paymentMode === "card" && (
+                <div style={{ background: "#faf5ff", border: "1.5px solid #d8b4fe", borderRadius: "10px", padding: "0.75rem 0.9rem", display: "flex", flexDirection: "column", gap: "0.55rem" }}>
+                  <div style={{ fontWeight: 700, fontSize: "0.8rem", color: "#7e22ce" }}>
+                    💳 Card Payment — Full amount collected via POS terminal
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
+                    {["Visa", "Mastercard", "RuPay", "Amex", "Debit Card", "Credit Card"].map(t => (
+                      <span key={t} style={{ background: "#f3e8ff", color: "#6b21a8", fontSize: "0.7rem", fontWeight: 700, padding: "0.15rem 0.55rem", borderRadius: "999px", border: "1px solid #d8b4fe" }}>{t}</span>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+                    <label style={{ fontSize: "0.74rem", fontWeight: 600, color: "#374151" }}>Transaction Ref / Card Last 4 Digits <span style={{ color: "#9ca3af", fontWeight: 400 }}>(optional)</span></label>
+                    <input
+                      type="text"
+                      placeholder="e.g. TXNREF123 or last 4 digits"
+                      value={cardRef}
+                      onChange={e => setCardRef(e.target.value)}
+                      style={{ padding: "0.5rem 0.75rem", border: "1.5px solid #d8b4fe", borderRadius: "8px", fontSize: "0.85rem", outline: "none", background: "#fff", color: "#111827", letterSpacing: "0.05em" }}
+                    />
+                  </div>
+                  <div style={{ fontSize: "0.68rem", color: "#6b7280" }}>
+                    ✔ Swipe / tap / insert card on your POS terminal. Enter the approval code or last 4 digits for records.
+                  </div>
+                </div>
+              )}
+
+              {/* CREDIT: full credit sale info */}
+              {paymentMode === "credit" && (
+                <div style={{ background: "#fff7ed", border: "1.5px solid #fdba74", borderRadius: "10px", padding: "0.75rem 0.9rem", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                  <div style={{ fontWeight: 700, fontSize: "0.8rem", color: "#c2410c" }}>
+                    📋 Credit Sale — Customer Owes Full Amount
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fef3c7", border: "1px solid #fde68a", borderRadius: "7px", padding: "0.45rem 0.75rem" }}>
+                    <span style={{ fontSize: "0.8rem", color: "#92400e", fontWeight: 600 }}>Amount to be credited:</span>
+                    <span style={{ fontSize: "1rem", fontWeight: 800, color: "#dc2626" }}>₹ {grandTotal.toFixed(2)}</span>
+                  </div>
+                  <div style={{ fontSize: "0.7rem", color: "#6b7280", lineHeight: 1.5 }}>
+                    ⚠ No cash collected now. Full balance of <strong>₹{grandTotal.toFixed(2)}</strong> will be tracked in
+                    the <strong>Orders → Pending</strong> and <strong>Accounts</strong> sections.
+                  </div>
+                </div>
+              )}
+
+              {/* ONLINE: Razorpay info panel */}
+              {paymentMode === "online" && (
+                <div style={{ background: "#eff6ff", border: "1.5px solid #bfdbfe", borderRadius: "10px", padding: "0.75rem 0.9rem", display: "flex", flexDirection: "column", gap: "0.45rem" }}>
+                  <div style={{ fontWeight: 700, fontSize: "0.8rem", color: "#1d4ed8" }}>
+                    🔒 Secure Online Payment via Razorpay
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
+                    {["Google Pay","PhonePe","Paytm","BHIM UPI","Credit Card","Debit Card","Net Banking","Wallets"].map(m => (
+                      <span key={m} style={{ background: "#dbeafe", color: "#1e40af", padding: "0.15rem 0.5rem", borderRadius: "999px", fontWeight: 600, fontSize: "0.7rem" }}>{m}</span>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: "0.68rem", color: "#6b7280" }}>
+                    Customer pays via the Razorpay popup. Payment is verified automatically before sale is confirmed.
+                  </div>
+                </div>
+              )}
+              {paymentMode !== "online" && (
               <div style={s.paidRow}>
                 <span style={s.paidLabel}>Paid Amount</span>
                 <input
@@ -563,12 +667,15 @@ const Sales = () => {
                   disabled={paymentMode === "upi" || paymentMode === "card"}
                 />
               </div>
+              )}
 
-              {/* Change Amount */}
+              {/* Change Amount — only for cash */}
+              {paymentMode === "cash" && (
               <div style={s.changeRow}>
                 <span style={s.changeLabel}>Change Amount</span>
                 <span style={s.changeVal}>{change.toFixed(2)} ₹</span>
               </div>
+              )}
 
               {/* Comments */}
               <div style={s.billingFieldLabel}>Comments</div>
@@ -591,13 +698,38 @@ const Sales = () => {
                 <button style={s.holdBtn}>
                   <span style={{ color: "#f59e0b" }}>⏸</span> Hold
                 </button>
-                <button
-                  style={s.placeOrderBtn(cart.length === 0 || submitting)}
-                  onClick={handleCheckout}
-                  disabled={cart.length === 0 || submitting}
-                >
-                  {submitting ? "Processing…" : "Place Order"}
-                </button>
+
+                {/* ─ ONLINE: Razorpay button ──────────────────────────── */}
+                {paymentMode === "online" ? (
+                  <button
+                    style={{
+                      ...s.placeOrderBtn(cart.length === 0 || rzProcessing),
+                      background: cart.length === 0 || rzProcessing ? "#9ca3af" : "#1d4ed8",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem",
+                    }}
+                    onClick={handleOnlineCheckout}
+                    disabled={cart.length === 0 || rzProcessing}
+                  >
+                    {rzProcessing ? (
+                      <>
+                        <span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid #fff", borderTopColor: "transparent", borderRadius: "50%", animation: "spin .7s linear infinite" }} />
+                        Processing…
+                        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+                      </>
+                    ) : (
+                      <>🔒 Pay ₹{grandTotal.toFixed(2)}</>
+                    )}
+                  </button>
+                ) : (
+                  /* ─ OFFLINE: standard Place Order button ────────────── */
+                  <button
+                    style={s.placeOrderBtn(cart.length === 0 || submitting)}
+                    onClick={handleCheckout}
+                    disabled={cart.length === 0 || submitting}
+                  >
+                    {submitting ? "Processing…" : "Place Order"}
+                  </button>
+                )}
               </div>
 
             </div>{/* /billingBody */}

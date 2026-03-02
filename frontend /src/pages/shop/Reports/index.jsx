@@ -18,6 +18,12 @@ const CLR = {
 };
 
 // ─── tiny helpers ─────────────────────────────────────────────────────────
+// Returns today's date as YYYY-MM-DD using the LOCAL calendar (not UTC)
+const localToday = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 const fmt = (n) =>
   "₹" + Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtN = (n) => Number(n || 0).toLocaleString("en-IN");
@@ -123,7 +129,7 @@ function DailyTab({ dailyDate, setDailyDate, dailyData, loading }) {
         <input
           type="date"
           value={dailyDate}
-          max={new Date().toISOString().slice(0, 10)}
+          max={localToday()}
           onChange={e => setDailyDate(e.target.value)}
           style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${CLR.border}`, fontSize: 14, color: CLR.text }}
         />
@@ -326,7 +332,7 @@ function BestProductsTab({ bpFrom, setBpFrom, bpTo, setBpTo, bpSortBy, setBpSort
           style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${CLR.border}`, fontSize: 14 }} />
         <label style={{ fontWeight: 600, color: CLR.text }}>To</label>
         <input type="date" value={bpTo} onChange={e => setBpTo(e.target.value)}
-          max={new Date().toISOString().slice(0, 10)}
+          max={localToday()}
           style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${CLR.border}`, fontSize: 14 }} />
         <div style={{ display: "flex", gap: 0, borderRadius: 8, overflow: "hidden", border: `1px solid ${CLR.border}` }}>
           {["qty", "revenue"].map(v => (
@@ -411,7 +417,7 @@ function ProfitTab({ profitFrom, setProfitFrom, profitTo, setProfitTo, profitDat
           style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${CLR.border}`, fontSize: 14 }} />
         <label style={{ fontWeight: 600, color: CLR.text }}>To</label>
         <input type="date" value={profitTo} onChange={e => setProfitTo(e.target.value)}
-          max={new Date().toISOString().slice(0, 10)}
+          max={localToday()}
           style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${CLR.border}`, fontSize: 14 }} />
       </div>
 

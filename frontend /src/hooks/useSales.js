@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import api from "../services/api";
+import useRazorpay from "./useRazorpay";
 
 export const IMG_BASE = "";   // images proxied via Vite → /uploads/...
 
@@ -29,10 +30,18 @@ const useSales = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [customers,        setCustomers]        = useState([]);
 
+  // ── Payment-mode specific reference fields ─────────────────────
+  const [upiRef,  setUpiRef]  = useState(""); // UTR / UPI transaction ID
+  const [cardRef, setCardRef] = useState(""); // card transaction ref / last 4 digits
+
   // ── Checkout state ────────────────────────────────────────────────
   const [submitting, setSubmitting] = useState(false);
   const [receipt,    setReceipt]    = useState(null);  // receipt data on success
   const [checkoutErr,setCheckoutErr]= useState("");
+
+  // ── Razorpay (online payment) ─────────────────────────────────────
+  const { openCheckout } = useRazorpay();
+  const [rzProcessing, setRzProcessing] = useState(false); // spinner while creating order / verifying
 
   // ── Fetch categories ──────────────────────────────────────────────
   useEffect(() => {
@@ -102,13 +111,15 @@ const useSales = () => {
     setCustomerName(""); setCustomerPhone(""); setCustomerAddress(""); setNote("");
     setPaymentMode("cash"); setCheckoutErr("");
     setSelectedCustomerId("");
+    setUpiRef(""); setCardRef("");
   };
 
   // ── Two-level category handlers ───────────────────────────────────────────
   const handlePaymentModeChange = (mode) => {
     setPaymentMode(mode);
-    // For UPI/Card always full payment; clear paid field for cash and credit
-    if (mode === "upi" || mode === "card") {
+    setUpiRef(""); setCardRef("");  // clear stale refs when switching modes
+    // for UPI/Card/Online always full payment; clear paid field for cash and credit
+    if (mode === "upi" || mode === "card" || mode === "online") {
       setPaidAmount("");  // will default to grandTotal at submit
     } else if (mode === "credit") {
       setPaidAmount("");
@@ -129,6 +140,105 @@ const useSales = () => {
   const grandTotal        = Math.max(0, subtotal + taxTotal - discountAmt);
   const paid              = parseFloat(paidAmount) || 0;
   const change            = paymentMode === "cash" ? Math.max(0, paid - grandTotal) : 0;
+
+  // ── Online Checkout (Razorpay) ────────────────────────────────────
+  const handleOnlineCheckout = async () => {
+    if (cart.length === 0) { setCheckoutErr("Add at least one product."); return; }
+
+    // Resolve customer details
+    const resolvedName    = selectedCustomerId
+      ? (customers.find(c => String(c.id) === String(selectedCustomerId))?.name    || "")
+      : customerName.trim();
+    const resolvedPhone   = selectedCustomerId
+      ? (customers.find(c => String(c.id) === String(selectedCustomerId))?.phone   || "")
+      : customerPhone.trim();
+    const resolvedAddress = selectedCustomerId
+      ? (customers.find(c => String(c.id) === String(selectedCustomerId))?.address || "")
+      : customerAddress.trim();
+
+    if (!resolvedName)    { setCheckoutErr("Customer name is required.");          return; }
+    if (!resolvedPhone)   { setCheckoutErr("Customer mobile number is required."); return; }
+    if (!resolvedAddress) { setCheckoutErr("Customer address is required.");       return; }
+
+    setCheckoutErr("");
+    setRzProcessing(true);
+
+    const items = cart.map(i => ({
+      product_id:      i.id,
+      product_name:    i.name,
+      sku:             i.sku    || null,
+      unit:            i.unit   || null,
+      quantity:        i.qty,
+      cost_price:      parseFloat(i.cost_price) || 0,
+      sell_price:      parseFloat(i.sell_price),
+      discount_amount: 0,
+      total:           parseFloat(i.sell_price) * i.qty,
+    }));
+
+    try {
+      // Step 1: Create Razorpay order on backend
+      const { data: orderData } = await api.post("/api/sales/razorpay/create-order", {
+        items,
+        discount:         discountAmt,
+        tax_amount:       taxTotal,
+        customer_id:      selectedCustomerId || null,
+        customer_name:    resolvedName,
+        customer_phone:   resolvedPhone,
+        customer_address: resolvedAddress,
+        note:             note || null,
+      });
+    // online checkout: also clear refs      setRzProcessing(false);
+
+      // Step 2: Open Razorpay checkout popup
+      openCheckout(orderData, {
+        onSuccess: async (rzResponse) => {
+          // razorpay_order_id, razorpay_payment_id, razorpay_signature returned by Razorpay
+          setRzProcessing(true);
+          try {
+            const { data: verifyData } = await api.post("/api/sales/razorpay/verify-payment", {
+              razorpay_order_id:   rzResponse.razorpay_order_id,
+              razorpay_payment_id: rzResponse.razorpay_payment_id,
+              razorpay_signature:  rzResponse.razorpay_signature,
+            });
+
+            setReceipt({
+              ...verifyData,
+              grandTotal,
+              paidAmt:         grandTotal,
+              balanceDue:      0,
+              saleStatus:      "paid",
+              change:          0,
+              cart:            [...cart],
+              paymentMode:     "online",
+              paymentId:       rzResponse.razorpay_payment_id,
+              customerName:    resolvedName,
+              customerPhone:   resolvedPhone,
+              customerAddress: resolvedAddress,
+            });
+            clearCart();
+          } catch (err) {
+            setCheckoutErr(err.response?.data?.error || "Payment verification failed. Contact support with your payment ID.");
+          } finally {
+            setRzProcessing(false);
+          }
+        },
+
+        onFailure: (err) => {
+          setCheckoutErr(`Payment failed: ${err?.description || err?.reason || "Please try again."}`);
+          setRzProcessing(false);
+        },
+
+        onDismiss: () => {
+          setCheckoutErr("Payment cancelled. Your order is saved — you can retry payment.");
+          setRzProcessing(false);
+        },
+      });
+
+    } catch (err) {
+      setCheckoutErr(err.response?.data?.error || "Failed to initiate payment. Please try again.");
+      setRzProcessing(false);
+    }
+  };
 
   // ── Checkout ──────────────────────────────────────────────────────
   const handleCheckout = async () => {
@@ -171,13 +281,21 @@ const useSales = () => {
     }));
 
     // Paid amount logic:
-    //  credit → 0 paid (owes full amount)
-    //  upi / card → always full payment
+    //  credit  → 0 paid (owes full amount)
+    //  upi / card / online → always full payment
     //  cash → whatever cashier entered; if blank default to grandTotal (full)
     const effectivePaid =
-      paymentMode === "credit"                      ? 0
-      : paymentMode === "upi" || paymentMode === "card" ? grandTotal
+      paymentMode === "credit"                                               ? 0
+      : paymentMode === "upi" || paymentMode === "card" || paymentMode === "online" ? grandTotal
       : (paid > 0 ? paid : grandTotal);
+
+    // Build final note: auto-prepend UPI / card refs for record keeping
+    let finalNote = (note || "").trim();
+    if (paymentMode === "upi" && upiRef.trim()) {
+      finalNote = `UPI Ref/UTR: ${upiRef.trim()}${finalNote ? " | " + finalNote : ""}`;
+    } else if (paymentMode === "card" && cardRef.trim()) {
+      finalNote = `Card Ref: ${cardRef.trim()}${finalNote ? " | " + finalNote : ""}`;
+    }
 
     const body = {
       items,
@@ -189,7 +307,7 @@ const useSales = () => {
       customer_name:     resolvedName,
       customer_phone:    resolvedPhone,
       customer_address:  resolvedAddress,
-      note:              note || null,
+      note:              finalNote || null,
     };
 
     try {
@@ -241,12 +359,16 @@ const useSales = () => {
     paymentMode, setPaymentMode,
     paidAmount, setPaidAmount,
     note, setNote,
+    upiRef, setUpiRef,
+    cardRef, setCardRef,
     // computed
     subtotal, productDiscount, taxTotal,
     couponDiscountAmt, extraDiscountAmt, discountAmt,
     grandTotal, paid, change,
     // checkout
     submitting, checkoutErr, handleCheckout,
+    handleOnlineCheckout,
+    rzProcessing,
     handlePaymentModeChange,
     // receipt
     receipt, setReceipt,
