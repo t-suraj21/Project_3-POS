@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . "/../controllers/SalesController.php";
+require_once __DIR__ . "/../controllers/RazorpayController.php";
 require_once __DIR__ . "/../middleware/authMiddleware.php";
 require_once __DIR__ . "/../middleware/roleMiddleware.php";
 
@@ -37,6 +38,20 @@ if (preg_match('#^/api/sales/(\d+)/refund$#', $uri, $m) && $method === 'PUT') {
 // POST /api/sales/:id/collect-payment
 if (preg_match('#^/api/sales/(\d+)/collect-payment$#', $uri, $m) && $method === 'POST') {
     SalesController::collectPayment($user, (int) $m[1]);
+    exit;
+}
+
+// ── Razorpay Online Payment Routes ───────────────────────────────────────────
+
+// POST /api/sales/razorpay/create-order
+if ($uri === '/api/sales/razorpay/create-order' && $method === 'POST') {
+    RazorpayController::createOrder($user);
+    exit;
+}
+
+// POST /api/sales/razorpay/verify-payment
+if ($uri === '/api/sales/razorpay/verify-payment' && $method === 'POST') {
+    RazorpayController::verifyPayment($user);
     exit;
 }
 

@@ -1,5 +1,9 @@
 <?php
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
+
+// Set PHP timezone to IST so date() / strtotime() match MySQL session timezone
+date_default_timezone_set('Asia/Kolkata');
+
 require_once __DIR__ . "/vendor/autoload.php";
 
 // Load .env variables (SMTP credentials, app URL, etc.)
@@ -87,6 +91,12 @@ if (str_starts_with($uri, '/api/settings')) {
 // Shop Admin – reports  →  /api/reports/*
 if (str_starts_with($uri, '/api/reports')) {
     require_once __DIR__ . "/routes/reports.php";
+    exit;
+}
+
+// Razorpay Webhooks  →  /api/webhooks/*  (no JWT – HMAC verified inside)
+if (str_starts_with($uri, '/api/webhooks')) {
+    require_once __DIR__ . "/routes/webhooks.php";
     exit;
 }
 
