@@ -1,89 +1,115 @@
+import { useState } from "react";
 import useReports from "../../../hooks/useReports";
-
-// ─── colour palette (matches rest of the POS) ─────────────────────────────
-const CLR = {
-  bg: "#f0f2f5",
-  white: "#fff",
-  primary: "#2196f3",
-  primaryDk: "#1565c0",
-  success: "#43a047",
-  warning: "#fb8c00",
-  danger: "#e53935",
-  purple: "#8e24aa",
-  text: "#1a1a2e",
-  sub: "#5f6368",
-  border: "#e8eaf0",
-  card: "#fff",
-  hover: "#e3f2fd",
-};
-
-// ─── tiny helpers ─────────────────────────────────────────────────────────
-// Returns today's date as YYYY-MM-DD using the LOCAL calendar (not UTC)
-const localToday = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
-
-const fmt = (n) =>
+// ─────────────────────────────────────────────────────────────────────────────
+const money = (n) =>
   "₹" + Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const fmtN = (n) => Number(n || 0).toLocaleString("en-IN");
-const pct = (part, total) =>
-  total > 0 ? ((part / total) * 100).toFixed(1) + "%" : "0%";
+const num = (n) => Number(n || 0).toLocaleString("en-IN");
 
-// ─── reusable stat card ────────────────────────────────────────────────────
-function StatCard({ label, value, sub, color = CLR.primary, icon }) {
+// ─────────────────────────────────────────────────────────────────────────────
+// Design tokens
+// ─────────────────────────────────────────────────────────────────────────────
+const T = {
+  bg:      "#f0f2f5",
+  white:   "#fff",
+  border:  "#e8eaf0",
+  text:    "#1a1a2e",
+  sub:     "#64748b",
+  primary: "#4f46e5",
+  green:   "#16a34a",
+  amber:   "#d97706",
+  red:     "#dc2626",
+  blue:    "#2563eb",
+  purple:  "#7c3aed",
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reusable sub-components
+// ─────────────────────────────────────────────────────────────────────────────
+function Card({ children, style }) {
   return (
     <div style={{
-      background: CLR.white, border: `1px solid ${CLR.border}`,
-      borderRadius: 12, padding: "18px 22px", flex: "1 1 180px",
-      borderTop: `4px solid ${color}`, boxShadow: "0 2px 8px rgba(0,0,0,.05)",
+      background: T.white, borderRadius: 14, border: `1px solid ${T.border}`,
+      boxShadow: "0 2px 10px rgba(0,0,0,.05)", padding: "20px 24px",
+      ...style,
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function SectionTitle({ icon, title, sub }) {
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: T.text, display: "flex", alignItems: "center", gap: 8 }}>
+        <span>{icon}</span>{title}
+      </h2>
+      {sub && <p style={{ margin: "3px 0 0", color: T.sub, fontSize: 13 }}>{sub}</p>}
+    </div>
+  );
+}
+
+function MetricCard({ label, value, sub, accent = T.primary, icon }) {
+  return (
+    <div style={{
+      background: T.white, border: `1px solid ${T.border}`, borderRadius: 12,
+      borderTop: `3px solid ${accent}`, padding: "16px 18px", flex: "1 1 160px",
+      boxShadow: "0 1px 6px rgba(0,0,0,.04)",
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <p style={{ margin: 0, color: CLR.sub, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: .5 }}>{label}</p>
-          <p style={{ margin: "6px 0 0", color: CLR.text, fontSize: 22, fontWeight: 700 }}>{value}</p>
-          {sub && <p style={{ margin: "4px 0 0", color: CLR.sub, fontSize: 12 }}>{sub}</p>}
-        </div>
-        <span style={{ fontSize: 28, opacity: .7 }}>{icon}</span>
+        <p style={{ margin: 0, color: T.sub, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: .6 }}>{label}</p>
+        <span style={{ fontSize: 20 }}>{icon}</span>
       </div>
+      <p style={{ margin: "8px 0 0", fontSize: 22, fontWeight: 800, color: T.text, letterSpacing: "-0.02em" }}>{value}</p>
+      {sub && <p style={{ margin: "4px 0 0", color: T.sub, fontSize: 12 }}>{sub}</p>}
     </div>
   );
 }
 
-// ─── section wrapper ──────────────────────────────────────────────────────
-function Section({ title, children }) {
+function PayModeChip({ label, amount, orders, color, bgColor }) {
   return (
-    <div style={{ background: CLR.white, borderRadius: 12, border: `1px solid ${CLR.border}`, marginBottom: 20, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,.04)" }}>
-      <div style={{ padding: "14px 20px", borderBottom: `1px solid ${CLR.border}`, fontWeight: 700, color: CLR.text, fontSize: 15 }}>
-        {title}
-      </div>
-      <div style={{ padding: 20 }}>{children}</div>
+    <div style={{
+      background: bgColor, borderRadius: 10, padding: "12px 16px",
+      flex: "1 1 130px", border: `1px solid ${T.border}`,
+    }}>
+      <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color, textTransform: "uppercase", letterSpacing: .5 }}>{label}</p>
+      <p style={{ margin: "6px 0 2px", fontSize: 18, fontWeight: 800, color: T.text }}>{money(amount)}</p>
+      <p style={{ margin: 0, fontSize: 12, color: T.sub }}>{num(orders)} order{orders !== 1 ? "s" : ""}</p>
     </div>
   );
 }
 
-// ─── simple table ─────────────────────────────────────────────────────────
-function Tbl({ heads, rows, emptyMsg = "No data" }) {
-  return rows.length === 0 ? (
-    <p style={{ textAlign: "center", color: CLR.sub, padding: 24 }}>{emptyMsg}</p>
-  ) : (
+function SimpleTable({ heads, rows, emptyMsg = "No data available" }) {
+  if (!rows || rows.length === 0) {
+    return (
+      <div style={{ textAlign: "center", padding: "40px 0", color: T.sub }}>
+        <div style={{ fontSize: 32, marginBottom: 8 }}>🔍</div>
+        <p style={{ margin: 0, fontWeight: 600 }}>{emptyMsg}</p>
+      </div>
+    );
+  }
+  return (
     <div style={{ overflowX: "auto" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
         <thead>
           <tr>
-            {heads.map((h) => (
-              <th key={h} style={{ padding: "10px 12px", background: "#f8f9fc", textAlign: "left", color: CLR.sub, fontWeight: 600, borderBottom: `2px solid ${CLR.border}`, whiteSpace: "nowrap" }}>{h}</th>
+            {heads.map((h, i) => (
+              <th key={i} style={{
+                padding: "10px 14px", background: "#f8fafc", textAlign: "left",
+                color: T.sub, fontWeight: 700, borderBottom: `2px solid ${T.border}`,
+                whiteSpace: "nowrap", fontSize: 12, textTransform: "uppercase", letterSpacing: .4,
+              }}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} style={{ background: i % 2 === 0 ? CLR.white : "#fafbff", transition: "background .15s" }}
-              onMouseEnter={e => e.currentTarget.style.background = CLR.hover}
-              onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? CLR.white : "#fafbff"}
+            <tr key={i}
+              style={{ background: i % 2 === 0 ? T.white : "#fafbff", transition: "background .15s" }}
+              onMouseEnter={e => e.currentTarget.style.background = "#eff6ff"}
+              onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? T.white : "#fafbff"}
             >
               {row.map((cell, j) => (
-                <td key={j} style={{ padding: "9px 12px", borderBottom: `1px solid ${CLR.border}`, color: CLR.text }}>{cell}</td>
+                <td key={j} style={{ padding: "10px 14px", borderBottom: `1px solid ${T.border}`, color: T.text }}>{cell}</td>
               ))}
             </tr>
           ))}
@@ -93,538 +119,572 @@ function Tbl({ heads, rows, emptyMsg = "No data" }) {
   );
 }
 
-// ─── status badge ──────────────────────────────────────────────────────────
-function Badge({ s }) {
-  const map = { paid: [CLR.success, "#e8f5e9"], credit: [CLR.danger, "#fce4ec"], partial: [CLR.warning, "#fff3e0"], refunded: [CLR.sub, "#f5f5f5"] };
-  const [fg, bg] = map[s] || [CLR.sub, "#f5f5f5"];
-  return <span style={{ padding: "2px 8px", borderRadius: 10, fontSize: 11, fontWeight: 700, background: bg, color: fg, textTransform: "capitalize" }}>{s}</span>;
-}
-
-// ─── horizontal bar ────────────────────────────────────────────────────────
-function Bar({ pctVal, color }) {
+// Mini bar chart for the current-month daily revenue
+function DailyBarChart({ bars }) {
+  if (!bars || bars.length === 0) return null;
+  const maxRev = Math.max(...bars.map(b => b.revenue), 1);
+  const today = new Date().getDate();
   return (
-    <div style={{ height: 8, borderRadius: 4, background: "#eee", overflow: "hidden", width: "100%" }}>
-      <div style={{ height: "100%", width: `${Math.min(100, pctVal)}%`, background: color, borderRadius: 4, transition: "width .4s" }} />
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-//  TAB COMPONENTS
-// ═══════════════════════════════════════════════════════════════════════════
-
-// ─── 1. DAILY ─────────────────────────────────────────────────────────────
-function DailyTab({ dailyDate, setDailyDate, dailyData, loading }) {
-  if (loading) return <Spinner />;
-  const s = dailyData?.summary;
-  const hourly = dailyData?.hourly || [];
-  const orders = dailyData?.orders || [];
-  const maxHourRev = Math.max(...hourly.map(r => +r.revenue), 1);
-
-  return (
-    <div>
-      {/* date picker */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-        <label style={{ fontWeight: 600, color: CLR.text }}>📅 Select Date</label>
-        <input
-          type="date"
-          value={dailyDate}
-          max={localToday()}
-          onChange={e => setDailyDate(e.target.value)}
-          style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${CLR.border}`, fontSize: 14, color: CLR.text }}
-        />
-      </div>
-
-      {!s ? null : (
-        <>
-          {/* summary cards */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginBottom: 20 }}>
-            <StatCard label="Total Orders" value={fmtN(s.total_orders)} icon="🛒" color={CLR.primary} />
-            <StatCard label="Total Revenue" value={fmt(s.total_revenue)} icon="💰" color={CLR.success} />
-            <StatCard label="Collected" value={fmt(s.total_paid)} icon="✅" color={CLR.purple}
-              sub={`Balance: ${fmt(s.total_balance)}`} />
-            <StatCard label="Discount Given" value={fmt(s.total_discount)} icon="🏷️" color={CLR.warning} />
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 80, padding: "0 4px", marginTop: 12 }}>
+      {bars.map((b) => {
+        const h = Math.max((b.revenue / maxRev) * 100, b.revenue > 0 ? 5 : 0);
+        const isToday = b.day === today;
+        return (
+          <div key={b.day} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}
+            title={`Day ${b.day}: ${money(b.revenue)} (${b.orders} orders)`}>
+            <div style={{
+              width: "80%", height: `${h}%`, minHeight: h > 0 ? 3 : 0,
+              background: isToday ? T.primary : "#a5b4fc",
+              borderRadius: "3px 3px 0 0", opacity: .9,
+            }} />
+            {(b.day % 5 === 1 || b.day === today) && (
+              <span style={{ fontSize: 8, color: T.sub, marginTop: 2, fontWeight: isToday ? 800 : 400 }}>{b.day}</span>
+            )}
           </div>
-
-          {/* payment mode breakdown */}
-          <Section title="💳 Payment Mode Breakdown">
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 14 }}>
-              {[
-                { mode: "Cash", orders: s.cash_orders, rev: s.cash_revenue, clr: CLR.success },
-                { mode: "UPI", orders: s.upi_orders, rev: s.upi_revenue, clr: CLR.primary },
-                { mode: "Card", orders: s.card_orders, rev: s.card_revenue, clr: CLR.purple },
-                { mode: "Credit", orders: s.credit_orders, rev: s.credit_revenue, clr: CLR.danger },
-              ].map(pm => (
-                <div key={pm.mode} style={{ flex: "1 1 160px", background: "#f8f9fc", borderRadius: 10, padding: "14px 18px", border: `1px solid ${CLR.border}` }}>
-                  <p style={{ margin: 0, fontWeight: 700, color: pm.clr, fontSize: 15 }}>{pm.mode}</p>
-                  <p style={{ margin: "6px 0 2px", fontSize: 20, fontWeight: 800, color: CLR.text }}>{fmt(pm.rev)}</p>
-                  <p style={{ margin: 0, color: CLR.sub, fontSize: 12 }}>{fmtN(pm.orders)} order{pm.orders !== 1 ? "s" : ""}</p>
-                  <div style={{ marginTop: 8 }}>
-                    <Bar pctVal={+s.total_revenue > 0 ? (+pm.rev / +s.total_revenue) * 100 : 0} color={pm.clr} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Section>
-
-          {/* order status */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginBottom: 20 }}>
-            <StatCard label="Completed" value={fmtN(s.completed_orders)} icon="✔️" color={CLR.success} />
-            <StatCard label="Pending / Credit" value={fmtN(s.pending_orders)} icon="⏳" color={CLR.warning} />
-            <StatCard label="Tax Collected" value={fmt(s.total_tax)} icon="📋" color={CLR.sub} />
-          </div>
-
-          {/* hourly activity */}
-          <Section title="⏰ Hourly Activity">
-            <div style={{ overflowX: "auto" }}>
-              <div style={{ display: "flex", alignItems: "flex-end", gap: 4, minWidth: 600, height: 120, padding: "0 4px" }}>
-                {hourly.map(h => {
-                  const barH = (+h.revenue / maxHourRev) * 100;
-                  const label = h.hour < 12 ? `${h.hour}am` : h.hour === 12 ? "12pm" : `${h.hour - 12}pm`;
-                  return (
-                    <div key={h.hour} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }} title={`${label}: ${fmt(h.revenue)} (${h.orders} orders)`}>
-                      <div style={{ width: "70%", height: `${barH}%`, minHeight: barH > 0 ? 4 : 0, background: CLR.primary, borderRadius: "3px 3px 0 0", opacity: .85, transition: "height .3s" }} />
-                      <span style={{ fontSize: 9, color: CLR.sub, marginTop: 3 }}>{label}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </Section>
-
-          {/* orders list */}
-          <Section title={`📄 All Orders (${orders.length})`}>
-            <Tbl
-              heads={["Bill#", "Customer", "Items", "Total", "Paid", "Mode", "Status", "Time"]}
-              emptyMsg="No orders for this day"
-              rows={orders.map(o => [
-                <span style={{ fontWeight: 600, color: CLR.primary }}>{o.bill_number}</span>,
-                <><span style={{ fontWeight: 600 }}>{o.customer_name || "-"}</span>{o.customer_phone ? <><br /><span style={{ fontSize: 11, color: CLR.sub }}>{o.customer_phone}</span></> : null}</>,
-                fmtN(o.item_count),
-                <span style={{ fontWeight: 700, color: CLR.text }}>{fmt(o.total_amount)}</span>,
-                fmt(o.paid_amount),
-                <span style={{ textTransform: "capitalize" }}>{o.payment_mode}</span>,
-                <Badge s={o.status} />,
-                new Date(o.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
-              ])}
-            />
-          </Section>
-        </>
-      )}
+        );
+      })}
     </div>
   );
 }
 
-// ─── 2. MONTHLY ───────────────────────────────────────────────────────────
-function MonthlyTab({ monthlyYear, setMonthlyYear, monthlyMonth, setMonthlyMonth, monthlyData, loading }) {
-  if (loading) return <Spinner />;
-  const s = monthlyData?.summary;
-  const prev = monthlyData?.prev_month;
-  const daily = monthlyData?.daily || [];
-  const weekly = monthlyData?.weekly || [];
-
-  const revChange = prev && +prev.total_revenue > 0 ? (((+s?.total_revenue - +prev.total_revenue) / +prev.total_revenue) * 100).toFixed(1) : null;
-  const ordChange = prev && +prev.total_orders > 0 ? (((+s?.total_orders - +prev.total_orders) / +prev.total_orders) * 100).toFixed(1) : null;
-
-  const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-  const curYear = new Date().getFullYear();
-  const years = Array.from({ length: 5 }, (_, i) => curYear - i);
-
+// Stock status badge
+function StockBadge({ stock, alertStock }) {
+  if (stock === 0) return (
+    <span style={{ background: "#fef2f2", color: T.red, padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 800 }}>
+      Out of Stock
+    </span>
+  );
+  if (stock <= alertStock) return (
+    <span style={{ background: "#fffbeb", color: T.amber, padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 800 }}>
+      Low Stock
+    </span>
+  );
   return (
-    <div>
-      {/* month / year pickers */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-        <label style={{ fontWeight: 600, color: CLR.text }}>📅 Month</label>
-        <select value={monthlyMonth} onChange={e => setMonthlyMonth(+e.target.value)}
-          style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${CLR.border}`, fontSize: 14, color: CLR.text }}>
-          {months.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-        </select>
-        <select value={monthlyYear} onChange={e => setMonthlyYear(+e.target.value)}
-          style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${CLR.border}`, fontSize: 14, color: CLR.text }}>
-          {years.map(y => <option key={y} value={y}>{y}</option>)}
-        </select>
-        {monthlyData && <span style={{ color: CLR.sub, fontSize: 13 }}>{monthlyData.month_name}</span>}
-      </div>
-
-      {!s ? null : (
-        <>
-          {/* summary */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginBottom: 20 }}>
-            <StatCard label="Total Orders" value={fmtN(s.total_orders)} icon="🛒" color={CLR.primary}
-              sub={ordChange !== null ? `${ordChange > 0 ? "▲" : "▼"} ${Math.abs(ordChange)}% vs prev month` : undefined} />
-            <StatCard label="Total Revenue" value={fmt(s.total_revenue)} icon="💰" color={CLR.success}
-              sub={revChange !== null ? `${revChange > 0 ? "▲" : "▼"} ${Math.abs(revChange)}% vs prev month` : undefined} />
-            <StatCard label="Collected" value={fmt(s.total_paid)} icon="✅" color={CLR.purple} />
-            <StatCard label="Discount" value={fmt(s.total_discount)} icon="🏷️" color={CLR.warning} />
-            <StatCard label="Tax" value={fmt(s.total_tax)} icon="📋" color={CLR.sub} />
-          </div>
-
-          {/* payment breakdown */}
-          <Section title="💳 Revenue by Payment Mode">
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 14 }}>
-              {[
-                { mode: "Cash", val: s.cash_revenue, clr: CLR.success },
-                { mode: "UPI", val: s.upi_revenue, clr: CLR.primary },
-                { mode: "Card", val: s.card_revenue, clr: CLR.purple },
-                { mode: "Credit", val: s.credit_revenue, clr: CLR.danger },
-              ].map(pm => (
-                <div key={pm.mode} style={{ flex: "1 1 140px", background: "#f8f9fc", borderRadius: 10, padding: "12px 16px", border: `1px solid ${CLR.border}` }}>
-                  <p style={{ margin: 0, color: CLR.sub, fontSize: 12, fontWeight: 600 }}>{pm.mode}</p>
-                  <p style={{ margin: "4px 0 4px", fontWeight: 800, fontSize: 18, color: pm.clr }}>{fmt(pm.val)}</p>
-                  <Bar pctVal={+s.total_revenue > 0 ? (+pm.val / +s.total_revenue) * 100 : 0} color={pm.clr} />
-                  <span style={{ fontSize: 11, color: CLR.sub }}>{pct(+pm.val, +s.total_revenue)}</span>
-                </div>
-              ))}
-            </div>
-          </Section>
-
-          {/* week breakdown */}
-          {weekly.length > 0 && (
-            <Section title="📊 Weekly Breakdown">
-              <Tbl
-                heads={["Week", "Orders", "Revenue"]}
-                rows={weekly.map(w => [
-                  `Week ${w.week_num}`,
-                  fmtN(w.orders),
-                  <span style={{ fontWeight: 700 }}>{fmt(w.revenue)}</span>,
-                ])}
-              />
-            </Section>
-          )}
-
-          {/* day-by-day */}
-          <Section title="📅 Day-by-Day Breakdown">
-            <Tbl
-              heads={["Date", "Day", "Orders", "Revenue", "Collected"]}
-              rows={daily.map(d => {
-                const dateStr = `${monthlyYear}-${String(monthlyMonth).padStart(2, "0")}-${String(d.day).padStart(2, "0")}`;
-                const dayName = new Date(dateStr).toLocaleDateString("en-IN", { weekday: "short" });
-                return [
-                  <span style={{ fontWeight: 600, color: CLR.primary }}>{dateStr}</span>,
-                  dayName,
-                  d.orders > 0 ? <span style={{ fontWeight: 600 }}>{fmtN(d.orders)}</span> : <span style={{ color: "#bbb" }}>—</span>,
-                  d.revenue > 0 ? <span style={{ fontWeight: 700 }}>{fmt(d.revenue)}</span> : <span style={{ color: "#bbb" }}>—</span>,
-                  d.paid > 0 ? fmt(d.paid) : <span style={{ color: "#bbb" }}>—</span>,
-                ];
-              })}
-            />
-          </Section>
-        </>
-      )}
-    </div>
+    <span style={{ background: "#f0fdf4", color: T.green, padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 800 }}>
+      OK
+    </span>
   );
 }
 
-// ─── 3. BEST PRODUCTS ─────────────────────────────────────────────────────
-function BestProductsTab({ bpFrom, setBpFrom, bpTo, setBpTo, bpSortBy, setBpSortBy, bpData, loading }) {
-  if (loading) return <Spinner />;
-  const ps = bpData?.period_summary;
-  const list = bpSortBy === "qty" ? (bpData?.by_qty || []) : (bpData?.by_revenue || []);
-  const cats = bpData?.by_category || [];
-  const maxRev = Math.max(...list.map(p => +p.total_revenue), 1);
+// ─────────────────────────────────────────────────────────────────────────────
+// COLLECTION SECTION
+// ─────────────────────────────────────────────────────────────────────────────
+const PERIOD_TABS = [
+  { key: "today", label: "📅 Today" },
+  { key: "week",  label: "📆 This Week" },
+  { key: "month", label: "🗓️ This Month" },
+  { key: "year",  label: "📊 This Year" },
+];
+
+function CollectionSection({ collection, dailyBar }) {
+  const [period, setPeriod] = useState("today");
+  const d = collection?.[period];
 
   return (
-    <div>
-      {/* date range */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-        <label style={{ fontWeight: 600, color: CLR.text }}>📅 From</label>
-        <input type="date" value={bpFrom} onChange={e => setBpFrom(e.target.value)}
-          style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${CLR.border}`, fontSize: 14 }} />
-        <label style={{ fontWeight: 600, color: CLR.text }}>To</label>
-        <input type="date" value={bpTo} onChange={e => setBpTo(e.target.value)}
-          max={localToday()}
-          style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${CLR.border}`, fontSize: 14 }} />
-        <div style={{ display: "flex", gap: 0, borderRadius: 8, overflow: "hidden", border: `1px solid ${CLR.border}` }}>
-          {["qty", "revenue"].map(v => (
-            <button key={v} onClick={() => setBpSortBy(v)}
-              style={{ padding: "7px 14px", background: bpSortBy === v ? CLR.primary : CLR.white, color: bpSortBy === v ? "#fff" : CLR.sub, border: "none", cursor: "pointer", fontWeight: 600, fontSize: 13 }}>
-              {v === "qty" ? "By Qty" : "By Revenue"}
-            </button>
-          ))}
-        </div>
-      </div>
+    <Card style={{ marginBottom: 24 }}>
+      <SectionTitle icon="💰" title="Collection Summary" sub="Revenue collected by time period (excluding refunds)" />
 
-      {ps && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginBottom: 20 }}>
-          <StatCard label="Total Orders" value={fmtN(ps.total_orders)} icon="🛒" color={CLR.primary} />
-          <StatCard label="Items Sold" value={fmtN(ps.total_items_sold)} icon="📦" color={CLR.success} />
-          <StatCard label="Revenue" value={fmt(ps.total_revenue)} icon="💰" color={CLR.purple} />
-          <StatCard label="Unique Products" value={fmtN(ps.unique_products_sold)} icon="🔢" color={CLR.warning} />
-        </div>
-      )}
-
-      {/* top products table */}
-      <Section title={`🏆 Top ${list.length} Products — sorted by ${bpSortBy === "qty" ? "Quantity" : "Revenue"}`}>
-        <Tbl
-          heads={["#", "Product", "Category", "Qty Sold", "Revenue", "Profit", "Avg Price", "Revenue Share"]}
-          emptyMsg="No sales data for this period"
-          rows={list.map((p, i) => [
-            <span style={{ fontWeight: 800, color: i < 3 ? [CLR.warning, CLR.sub, "#cd7f32"][i] : CLR.sub }}>{i + 1}</span>,
-            <span style={{ fontWeight: 600 }}>{p.product_name}</span>,
-            <span style={{ color: CLR.sub }}>{p.category_name || "—"}</span>,
-            <span style={{ fontWeight: 700 }}>{fmtN(p.total_qty)}</span>,
-            <span style={{ fontWeight: 700, color: CLR.success }}>{fmt(p.total_revenue)}</span>,
-            <span style={{ color: +p.gross_profit >= 0 ? CLR.success : CLR.danger }}>{fmt(p.gross_profit)}</span>,
-            fmt(p.avg_price),
-            <div style={{ minWidth: 120 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-                <span style={{ fontSize: 11, color: CLR.sub }}>{pct(+p.total_revenue, maxRev * (bpData?.by_revenue?.length || 1) / (bpData?.by_revenue?.length || 1))}</span>
-                <span style={{ fontSize: 11, color: CLR.sub }}>{pct(+p.total_revenue, +(bpData?.period_summary?.total_revenue || 1))}</span>
-              </div>
-              <Bar pctVal={+ps?.total_revenue > 0 ? (+p.total_revenue / +ps.total_revenue) * 100 : 0} color={CLR.primary} />
-            </div>,
-          ])}
-        />
-      </Section>
-
-      {/* category breakdown */}
-      {cats.length > 0 && (
-        <Section title="📂 Category Breakdown">
-          <Tbl
-            heads={["Category", "Revenue", "Qty", "Products", "Share"]}
-            rows={cats.map(c => [
-              <span style={{ fontWeight: 600 }}>{c.category}</span>,
-              <span style={{ fontWeight: 700, color: CLR.success }}>{fmt(c.total_revenue)}</span>,
-              fmtN(c.total_qty),
-              fmtN(c.unique_products),
-              <div style={{ minWidth: 100 }}>
-                <Bar pctVal={ps?.total_revenue > 0 ? (+c.total_revenue / +ps.total_revenue) * 100 : 0} color={CLR.purple} />
-                <span style={{ fontSize: 11, color: CLR.sub }}>{pct(+c.total_revenue, +ps?.total_revenue)}</span>
-              </div>,
-            ])}
-          />
-        </Section>
-      )}
-    </div>
-  );
-}
-
-// ─── 4. PROFIT ────────────────────────────────────────────────────────────
-function ProfitTab({ profitFrom, setProfitFrom, profitTo, setProfitTo, profitData, loading }) {
-  if (loading) return <Spinner />;
-  const s = profitData?.summary;
-  const daily = profitData?.daily || [];
-  const byMode = profitData?.by_mode || [];
-  const top = profitData?.top_products || [];
-  const maxProfit = Math.max(...daily.map(d => +d.profit), 1);
-
-  return (
-    <div>
-      {/* date range */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-        <label style={{ fontWeight: 600, color: CLR.text }}>📅 From</label>
-        <input type="date" value={profitFrom} onChange={e => setProfitFrom(e.target.value)}
-          style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${CLR.border}`, fontSize: 14 }} />
-        <label style={{ fontWeight: 600, color: CLR.text }}>To</label>
-        <input type="date" value={profitTo} onChange={e => setProfitTo(e.target.value)}
-          max={localToday()}
-          style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${CLR.border}`, fontSize: 14 }} />
-      </div>
-
-      {s && (
-        <>
-          {/* summary cards */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginBottom: 20 }}>
-            <StatCard label="Revenue" value={fmt(s.total_revenue)} icon="💰" color={CLR.primary}
-              sub={`Orders: ${fmtN(s.total_orders)}`} />
-            <StatCard label="Total Cost" value={fmt(s.total_cost)} icon="🏭" color={CLR.danger} />
-            <StatCard label="Gross Profit" value={fmt(s.gross_profit)} icon="📈" color={CLR.success}
-              sub={`Margin: ${s.profit_margin}%`} />
-            <StatCard label="Collected" value={fmt(s.total_collected)} icon="✅" color={CLR.purple}
-              sub={`Pending: ${fmt(s.pending_receivable)}`} />
-            <StatCard label="Discount Impact" value={fmt(s.total_discount)} icon="🏷️" color={CLR.warning}
-              sub={`Tax: ${fmt(s.total_tax)}`} />
-          </div>
-
-          {/* profit margin indicator */}
-          <Section title="📊 Profit Margin">
-            <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, color: CLR.sub }}>Gross Margin</span>
-                  <span style={{ fontWeight: 800, fontSize: 18, color: +s.profit_margin >= 20 ? CLR.success : +s.profit_margin >= 10 ? CLR.warning : CLR.danger }}>
-                    {s.profit_margin}%
-                  </span>
-                </div>
-                <div style={{ height: 16, borderRadius: 8, background: "#eee", overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${Math.min(100, s.profit_margin)}%`, background: +s.profit_margin >= 20 ? CLR.success : +s.profit_margin >= 10 ? CLR.warning : CLR.danger, borderRadius: 8, transition: "width .5s" }} />
-                </div>
-              </div>
-              <div style={{ textAlign: "center", padding: "10px 20px", background: "#f0fdf4", borderRadius: 10, border: "1px solid #a7f3d0" }}>
-                <p style={{ margin: 0, color: CLR.sub, fontSize: 12 }}>Net Profit</p>
-                <p style={{ margin: "4px 0 0", fontWeight: 800, fontSize: 22, color: CLR.success }}>{fmt(s.net_profit)}</p>
-                <p style={{ margin: "2px 0 0", fontSize: 11, color: CLR.sub }}>(after discounts)</p>
-              </div>
-            </div>
-          </Section>
-
-          {/* payment mode profit */}
-          {byMode.length > 0 && (
-            <Section title="💳 Profit by Payment Mode">
-              <Tbl
-                heads={["Mode", "Orders", "Revenue", "Cost", "Profit", "Margin"]}
-                rows={byMode.map(m => {
-                  const margin = +m.revenue > 0 ? ((+m.profit / +m.revenue) * 100).toFixed(1) : "0.0";
-                  return [
-                    <span style={{ textTransform: "capitalize", fontWeight: 600 }}>{m.payment_mode}</span>,
-                    fmtN(m.orders),
-                    <span style={{ fontWeight: 700 }}>{fmt(m.revenue)}</span>,
-                    <span style={{ color: CLR.danger }}>{fmt(m.cost)}</span>,
-                    <span style={{ fontWeight: 700, color: CLR.success }}>{fmt(m.profit)}</span>,
-                    <span style={{ color: +margin >= 20 ? CLR.success : CLR.warning }}>{margin}%</span>,
-                  ];
-                })}
-              />
-            </Section>
-          )}
-
-          {/* daily profit chart */}
-          {daily.length > 0 && (
-            <Section title="📅 Daily Profit Trend">
-              {/* mini bar chart */}
-              <div style={{ overflowX: "auto", marginBottom: 16 }}>
-                <div style={{ display: "flex", alignItems: "flex-end", gap: 4, minWidth: Math.max(600, daily.length * 28), height: 100 }}>
-                  {daily.map(d => {
-                    const barH = (+d.profit / maxProfit) * 100;
-                    return (
-                      <div key={d.sale_date} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}
-                        title={`${d.sale_date}: Revenue ${fmt(d.revenue)}, Cost ${fmt(d.cost)}, Profit ${fmt(d.profit)}`}>
-                        <div style={{ width: "70%", height: `${Math.max(0, barH)}%`, minHeight: barH > 0 ? 3 : 0, background: +d.profit >= 0 ? CLR.success : CLR.danger, borderRadius: "3px 3px 0 0", opacity: .85 }} />
-                        <span style={{ fontSize: 8, color: CLR.sub, marginTop: 2, transform: "rotate(-30deg)", whiteSpace: "nowrap" }}>
-                          {d.sale_date.slice(5)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* table */}
-              <Tbl
-                heads={["Date", "Orders", "Revenue", "Cost", "Profit", "Margin"]}
-                rows={daily.map(d => {
-                  const margin = +d.revenue > 0 ? ((+d.profit / +d.revenue) * 100).toFixed(1) : "0.0";
-                  return [
-                    <span style={{ fontWeight: 600, color: CLR.primary }}>{d.sale_date}</span>,
-                    fmtN(d.orders),
-                    <span style={{ fontWeight: 600 }}>{fmt(d.revenue)}</span>,
-                    <span style={{ color: CLR.danger }}>{fmt(d.cost)}</span>,
-                    <span style={{ fontWeight: 700, color: +d.profit >= 0 ? CLR.success : CLR.danger }}>{fmt(d.profit)}</span>,
-                    <span style={{ color: +margin >= 20 ? CLR.success : CLR.warning }}>{margin}%</span>,
-                  ];
-                })}
-              />
-            </Section>
-          )}
-
-          {/* top profitable products */}
-          {top.length > 0 && (
-            <Section title="🏆 Most Profitable Products">
-              <Tbl
-                heads={["#", "Product", "Qty", "Revenue", "Cost", "Profit", "Margin"]}
-                rows={top.map((p, i) => [
-                  <span style={{ fontWeight: 800, color: i < 3 ? [CLR.warning, CLR.sub, "#cd7f32"][i] : CLR.sub }}>{i + 1}</span>,
-                  <span style={{ fontWeight: 600 }}>{p.product_name}</span>,
-                  fmtN(p.total_qty),
-                  <span style={{ fontWeight: 600 }}>{fmt(p.revenue)}</span>,
-                  <span style={{ color: CLR.danger }}>{fmt(p.cost)}</span>,
-                  <span style={{ fontWeight: 700, color: CLR.success }}>{fmt(p.profit)}</span>,
-                  <span style={{ fontWeight: 600, color: +p.margin_pct >= 20 ? CLR.success : CLR.warning }}>{p.margin_pct}%</span>,
-                ])}
-              />
-            </Section>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-// ─── spinner ──────────────────────────────────────────────────────────────
-function Spinner() {
-  return (
-    <div style={{ textAlign: "center", padding: "60px 0", color: CLR.sub }}>
-      <div style={{ display: "inline-block", width: 36, height: 36, border: `3px solid ${CLR.border}`, borderTopColor: CLR.primary, borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      <p style={{ marginTop: 12, fontSize: 14 }}>Loading report…</p>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-//  MAIN COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
-export default function Reports() {
-  const hook = useReports();
-
-  const tabs = [
-    { id: "daily",        label: "📅 Daily",          icon: "📅" },
-    { id: "monthly",      label: "📆 Monthly",         icon: "📆" },
-    { id: "bestProducts", label: "🏆 Best Products",   icon: "🏆" },
-    { id: "profit",       label: "📈 Profit",          icon: "📈" },
-  ];
-
-  return (
-    <div style={{ padding: "24px 28px", background: CLR.bg, minHeight: "100vh" }}>
-      {/* page header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: CLR.text }}>📊 Reports</h1>
-        <p style={{ margin: "4px 0 0", color: CLR.sub, fontSize: 14 }}>Sales analytics and business insights</p>
-      </div>
-
-      {/* tab bar */}
-      <div style={{ display: "flex", gap: 0, marginBottom: 24, background: CLR.white, borderRadius: 12, overflow: "hidden", border: `1px solid ${CLR.border}`, width: "fit-content", boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
-        {tabs.map(t => (
-          <button key={t.id} onClick={() => hook.setActiveTab(t.id)}
+      {/* Period tabs */}
+      <div style={{ display: "flex", gap: 0, marginBottom: 22, background: "#f1f5f9", borderRadius: 10, padding: 4, width: "fit-content", flexWrap: "wrap" }}>
+        {PERIOD_TABS.map(t => (
+          <button key={t.key} onClick={() => setPeriod(t.key)}
             style={{
-              padding: "12px 22px",
-              background: hook.activeTab === t.id ? CLR.primary : "transparent",
-              color: hook.activeTab === t.id ? "#fff" : CLR.sub,
-              border: "none", cursor: "pointer", fontWeight: 700, fontSize: 14,
-              transition: "background .2s, color .2s",
-              borderRight: `1px solid ${CLR.border}`,
+              padding: "8px 18px", border: "none", borderRadius: 8, cursor: "pointer",
+              background: period === t.key ? T.primary : "transparent",
+              color: period === t.key ? "#fff" : T.sub,
+              fontWeight: 700, fontSize: 13, transition: "all .18s",
             }}>
             {t.label}
           </button>
         ))}
       </div>
 
-      {/* error banner */}
-      {hook.error && (
-        <div style={{ background: "#fce4ec", border: "1px solid #ef9a9a", borderRadius: 8, padding: "10px 16px", marginBottom: 16, color: CLR.danger, fontWeight: 600 }}>
-          ⚠️ {hook.error}
+      {d && (
+        <>
+          {/* Main metrics */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginBottom: 20 }}>
+            <MetricCard label="Total Orders"   value={num(d.total_orders)}    icon="🛒" accent={T.primary} />
+            <MetricCard label="Total Revenue"  value={money(d.total_revenue)}  icon="💵" accent={T.green}
+              sub={`Collected: ${money(d.total_collected)}`} />
+            <MetricCard label="Balance Due"    value={money(d.total_balance)}  icon="⏳" accent={T.amber}
+              sub={`${num(d.pending_orders)} orders pending`} />
+            <MetricCard label="Discount Given" value={money(d.total_discount)} icon="🏷️" accent={T.purple} />
+            <MetricCard label="Completed"      value={num(d.completed_orders)} icon="✅" accent={T.green} />
+          </div>
+
+          {/* Payment mode breakdown */}
+          <div style={{ marginBottom: period === "month" ? 0 : 0 }}>
+            <p style={{ margin: "0 0 10px", fontSize: 12, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .5 }}>
+              💳 Payment Mode Breakdown
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+              <PayModeChip label="Cash"   amount={d.cash}   orders={d.cash_orders}   color="#166534" bgColor="#f0fdf4" />
+              <PayModeChip label="UPI"    amount={d.upi}    orders={d.upi_orders}    color="#1e40af" bgColor="#eff6ff" />
+              <PayModeChip label="Card"   amount={d.card}   orders={d.card_orders}   color="#5b21b6" bgColor="#faf5ff" />
+              <PayModeChip label="Credit" amount={d.credit} orders={d.credit_orders} color="#9a3412" bgColor="#fff7ed" />
+            </div>
+          </div>
+
+          {/* Month chart */}
+          {period === "month" && dailyBar && (
+            <div style={{ marginTop: 22 }}>
+              <p style={{ margin: "0 0 4px", fontSize: 12, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .5 }}>
+                📈 Daily Revenue — {new Date().toLocaleString("en-IN", { month: "long", year: "numeric" })}
+              </p>
+              <DailyBarChart bars={dailyBar} />
+            </div>
+          )}
+        </>
+      )}
+    </Card>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TOP PRODUCTS SECTION
+// ─────────────────────────────────────────────────────────────────────────────
+function TopProductsSection({ topByQty, topByRevenue }) {
+  const [sortBy, setSortBy] = useState("qty");
+  const list = sortBy === "qty" ? (topByQty || []) : (topByRevenue || []);
+  const maxVal = Math.max(...list.map(p => sortBy === "qty" ? p.units_sold : p.total_revenue), 1);
+
+  return (
+    <Card style={{ marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 18 }}>
+        <SectionTitle icon="🏆" title="Top Selling Products"
+          sub="Best performing products by quantity and revenue (all time)" />
+        <div style={{ display: "flex", gap: 0, borderRadius: 8, overflow: "hidden", border: `1px solid ${T.border}`, flexShrink: 0 }}>
+          <button onClick={() => setSortBy("qty")}
+            style={{ padding: "7px 16px", border: "none", cursor: "pointer", background: sortBy === "qty" ? T.primary : T.white, color: sortBy === "qty" ? "#fff" : T.sub, fontWeight: 700, fontSize: 13 }}>
+            By Units
+          </button>
+          <button onClick={() => setSortBy("revenue")}
+            style={{ padding: "7px 16px", border: "none", cursor: "pointer", background: sortBy === "revenue" ? T.primary : T.white, color: sortBy === "revenue" ? "#fff" : T.sub, fontWeight: 700, fontSize: 13 }}>
+            By Revenue
+          </button>
+        </div>
+      </div>
+
+      <SimpleTable
+        emptyMsg="No sales recorded yet"
+        heads={["#", "Product", "Category", "Price", "Units Sold", "Orders", "Revenue", "Stock", "Bar"]}
+        rows={list.slice(0, 15).map((p, i) => {
+          const barVal = sortBy === "qty" ? p.units_sold : p.total_revenue;
+          const barPct = Math.round((barVal / maxVal) * 100);
+          const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : <span style={{ color: T.sub, fontWeight: 700 }}>#{i + 1}</span>;
+          return [
+            medal,
+            <span style={{ fontWeight: 700, color: T.text }}>{p.name}</span>,
+            <span style={{ color: T.sub, fontSize: 12 }}>{p.category_name}</span>,
+            money(p.sell_price),
+            <span style={{ fontWeight: 700, color: T.green }}>{num(p.units_sold)}</span>,
+            num(p.order_count),
+            <span style={{ fontWeight: 700, color: T.primary }}>{money(p.total_revenue)}</span>,
+            <span style={{ fontWeight: 600, color: p.stock === 0 ? T.red : p.stock <= 5 ? T.amber : T.green }}>{p.stock}</span>,
+            <div style={{ width: 120, height: 8, background: "#e2e8f0", borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${barPct}%`, background: sortBy === "qty" ? T.green : T.primary, borderRadius: 4, transition: "width .4s" }} />
+            </div>,
+          ];
+        })}
+      />
+    </Card>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOW STOCK SECTION
+// ─────────────────────────────────────────────────────────────────────────────
+function LowStockSection({ lowStock, outOfStockCount, lowStockCount }) {
+  const [filter, setFilter] = useState("all");
+  const list = (lowStock || []).filter(p =>
+    filter === "all"        ? true :
+    filter === "out"        ? p.stock === 0 :
+    /* low */                 p.stock > 0
+  );
+
+  return (
+    <Card>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 18 }}>
+        <div>
+          <SectionTitle icon="⚠️" title="Stock Report"
+            sub="Products that need restocking" />
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <span style={{ background: "#fef2f2", color: T.red, padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
+              🔴 Out of Stock: {num(outOfStockCount)}
+            </span>
+            <span style={{ background: "#fffbeb", color: T.amber, padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
+              🟡 Low Stock: {num(lowStockCount)}
+            </span>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 0, borderRadius: 8, overflow: "hidden", border: `1px solid ${T.border}`, flexShrink: 0 }}>
+          {[["all","All"], ["out","Out of Stock"], ["low","Low Stock"]].map(([v, l]) => (
+            <button key={v} onClick={() => setFilter(v)}
+              style={{ padding: "7px 14px", border: "none", cursor: "pointer", background: filter === v ? T.red : T.white, color: filter === v ? "#fff" : T.sub, fontWeight: 700, fontSize: 12 }}>
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <SimpleTable
+        emptyMsg="✅ All products are well stocked!"
+        heads={["Product", "SKU", "Category", "Cost Price", "Sell Price", "Current Stock", "Alert At", "Status"]}
+        rows={list.map(p => [
+          <span style={{ fontWeight: 700, color: T.text }}>{p.name}</span>,
+          <span style={{ color: T.sub, fontSize: 12, fontFamily: "monospace" }}>{p.sku || "—"}</span>,
+          <span style={{ color: T.sub, fontSize: 12 }}>{p.category_name}</span>,
+          money(p.cost_price),
+          money(p.sell_price),
+          <span style={{
+            fontWeight: 800, fontSize: 16,
+            color: p.stock === 0 ? T.red : T.amber,
+          }}>{p.stock}</span>,
+          <span style={{ color: T.sub }}>{p.alert_stock}</span>,
+          <StockBadge stock={p.stock} alertStock={p.alert_stock} />,
+        ])}
+      />
+    </Card>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DATE-RANGE REPORT SECTION
+// ─────────────────────────────────────────────────────────────────────────────
+const localToday = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+const PRESETS = [
+  { label: "Today",       getDates: () => { const t = localToday(); return [t, t]; } },
+  { label: "Yesterday",   getDates: () => { const d = new Date(); d.setDate(d.getDate() - 1); const s = d.toISOString().slice(0,10); return [s, s]; } },
+  { label: "Last 7 Days", getDates: () => { const t = localToday(); const d = new Date(); d.setDate(d.getDate() - 6); return [d.toISOString().slice(0,10), t]; } },
+  { label: "Last 30 Days",getDates: () => { const t = localToday(); const d = new Date(); d.setDate(d.getDate() - 29); return [d.toISOString().slice(0,10), t]; } },
+  { label: "This Month",  getDates: () => { const d = new Date(); return [`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-01`, localToday()]; } },
+  { label: "Last Month",  getDates: () => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth()-1); const y = d.getFullYear(), m = d.getMonth()+1; const last = new Date(y, m, 0).getDate(); return [`${y}-${String(m).padStart(2,"0")}-01`, `${y}-${String(m).padStart(2,"0")}-${String(last).padStart(2,"0")}`]; } },
+];
+
+const STATUS_COLORS = {
+  paid:     { bg: "#f0fdf4", color: "#166534" },
+  partial:  { bg: "#fefce8", color: "#854d0e" },
+  credit:   { bg: "#fff7ed", color: "#9a3412" },
+  refunded: { bg: "#fef2f2", color: "#dc2626" },
+};
+
+function StatusBadge({ status }) {
+  const c = STATUS_COLORS[status] || { bg: "#f1f5f9", color: "#475569" };
+  return <span style={{ ...c, padding: "2px 9px", borderRadius: 20, fontSize: 11, fontWeight: 800, textTransform: "capitalize" }}>{status}</span>;
+}
+
+function DateRangeSection({ drFrom, setDrFrom, drTo, setDrTo, drData, drLoading, drError, fetchDateRange }) {
+  const [activePreset, setActivePreset] = useState(null);
+
+  const applyPreset = (preset, idx) => {
+    const [f, t] = preset.getDates();
+    setDrFrom(f);
+    setDrTo(t);
+    setActivePreset(idx);
+  };
+
+  const handleSearch = () => {
+    fetchDateRange(drFrom, drTo);
+    setActivePreset(null);
+  };
+
+  const s = drData?.summary;
+  const daily = drData?.daily || [];
+  const topProds = drData?.top_products || [];
+  const orders = drData?.orders || [];
+  const maxBarRev = Math.max(...daily.map(d => d.revenue), 1);
+  const maxProdUnits = Math.max(...topProds.map(p => p.units_sold), 1);
+
+  return (
+    <Card style={{ marginBottom: 24 }}>
+      <SectionTitle icon="📅" title="Custom Date Report"
+        sub="Select any date or range to see detailed sales data" />
+
+      {/* Preset chips */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+        {PRESETS.map((p, i) => (
+          <button key={i} onClick={() => applyPreset(p, i)}
+            style={{
+              padding: "6px 14px", borderRadius: 20, border: `1.5px solid ${activePreset === i ? T.primary : T.border}`,
+              background: activePreset === i ? T.primary : T.white,
+              color: activePreset === i ? "#fff" : T.sub,
+              fontWeight: 700, fontSize: 12, cursor: "pointer", transition: "all .15s",
+            }}>
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Date pickers + Search */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <label style={{ fontSize: 13, fontWeight: 700, color: T.sub }}>From</label>
+          <input type="date" value={drFrom} max={localToday()}
+            onChange={e => { setDrFrom(e.target.value); setActivePreset(null); }}
+            style={{ padding: "8px 12px", border: `1.5px solid ${T.border}`, borderRadius: 8, fontSize: 14, color: T.text, fontWeight: 600, outline: "none" }} />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <label style={{ fontSize: 13, fontWeight: 700, color: T.sub }}>To</label>
+          <input type="date" value={drTo} max={localToday()}
+            onChange={e => { setDrTo(e.target.value); setActivePreset(null); }}
+            style={{ padding: "8px 12px", border: `1.5px solid ${T.border}`, borderRadius: 8, fontSize: 14, color: T.text, fontWeight: 600, outline: "none" }} />
+        </div>
+        <button onClick={handleSearch} disabled={drLoading}
+          style={{
+            padding: "9px 22px", background: T.primary, color: "#fff", border: "none", borderRadius: 8,
+            fontWeight: 700, fontSize: 14, cursor: drLoading ? "not-allowed" : "pointer",
+            opacity: drLoading ? .7 : 1, boxShadow: "0 2px 8px rgba(79,70,229,.3)", transition: "opacity .15s",
+          }}>
+          {drLoading ? "Loading…" : "🔍 Generate Report"}
+        </button>
+      </div>
+
+      {/* Error */}
+      {drError && (
+        <div style={{ background: "#fef2f2", border: `1px solid #fecaca`, borderRadius: 8, padding: "10px 14px", color: T.red, fontWeight: 600, marginBottom: 16 }}>
+          ⚠️ {drError}
         </div>
       )}
 
-      {/* tab content */}
-      {hook.activeTab === "daily" && (
-        <DailyTab
-          dailyDate={hook.dailyDate} setDailyDate={hook.setDailyDate}
-          dailyData={hook.dailyData} loading={hook.loading}
-        />
+      {/* Loading spinner */}
+      {drLoading && (
+        <div style={{ textAlign: "center", padding: "40px 0", color: T.sub }}>
+          <div style={{ width: 32, height: 32, border: `3px solid ${T.border}`, borderTopColor: T.primary, borderRadius: "50%", animation: "spin .7s linear infinite", display: "inline-block" }} />
+          <p style={{ marginTop: 10, fontWeight: 600 }}>Fetching report…</p>
+        </div>
       )}
-      {hook.activeTab === "monthly" && (
-        <MonthlyTab
-          monthlyYear={hook.monthlyYear} setMonthlyYear={hook.setMonthlyYear}
-          monthlyMonth={hook.monthlyMonth} setMonthlyMonth={hook.setMonthlyMonth}
-          monthlyData={hook.monthlyData} loading={hook.loading}
-        />
+
+      {/* Results */}
+      {!drLoading && drData && s && (
+        <>
+          {/* Range label */}
+          <div style={{ background: "#eff6ff", borderRadius: 8, padding: "10px 16px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 18 }}>📊</span>
+            <span style={{ fontWeight: 700, color: T.primary, fontSize: 14 }}>
+              Report for: {drData.from} → {drData.to}
+            </span>
+            <span style={{ color: T.sub, fontSize: 13 }}>({num(s.total_orders)} orders)</span>
+          </div>
+
+          {/* Summary metric cards */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginBottom: 22 }}>
+            <MetricCard label="Total Orders"    value={num(s.total_orders)}    icon="🛒" accent={T.primary} />
+            <MetricCard label="Total Revenue"   value={money(s.total_revenue)}  icon="💵" accent={T.green}
+              sub={`Collected: ${money(s.total_collected)}`} />
+            <MetricCard label="Balance Due"     value={money(s.total_balance)}  icon="⏳" accent={T.amber}
+              sub={`${num(s.pending_orders)} pending`} />
+            <MetricCard label="Discount Given"  value={money(s.total_discount)} icon="🏷️" accent={T.purple} />
+            <MetricCard label="Tax Collected"   value={money(s.total_tax)}      icon="📋" accent={T.sub} />
+          </div>
+
+          {/* Payment mode cards */}
+          <p style={{ margin: "0 0 10px", fontSize: 12, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .5 }}>
+            💳 Payment Mode Breakdown
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 24 }}>
+            <PayModeChip label="Cash"   amount={s.cash}   orders={s.cash_orders}   color="#166534" bgColor="#f0fdf4" />
+            <PayModeChip label="UPI"    amount={s.upi}    orders={s.upi_orders}    color="#1e40af" bgColor="#eff6ff" />
+            <PayModeChip label="Card"   amount={s.card}   orders={s.card_orders}   color="#5b21b6" bgColor="#faf5ff" />
+            <PayModeChip label="Credit" amount={s.credit} orders={s.credit_orders} color="#9a3412" bgColor="#fff7ed" />
+          </div>
+
+          {/* Day-by-day bar chart + table */}
+          {daily.length > 0 && (
+            <>
+              <p style={{ margin: "0 0 8px", fontSize: 12, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .5 }}>
+                📈 Day-by-Day Breakdown
+              </p>
+
+              {/* Bar chart */}
+              {daily.length > 1 && (
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 80, padding: "0 4px", marginBottom: 16, background: "#f8fafc", borderRadius: 10, paddingTop: 10 }}>
+                  {daily.map((d, i) => {
+                    const h = Math.max((d.revenue / maxBarRev) * 100, d.revenue > 0 ? 5 : 0);
+                    const dayLabel = new Date(d.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+                    return (
+                      <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}
+                        title={`${d.date}: ${money(d.revenue)} (${d.orders} orders)`}>
+                        <div style={{ width: "70%", height: `${h}%`, minHeight: h > 0 ? 4 : 0, background: T.primary, borderRadius: "3px 3px 0 0", opacity: .85 }} />
+                        {(daily.length <= 10 || i % Math.ceil(daily.length / 10) === 0) && (
+                          <span style={{ fontSize: 8, color: T.sub, marginTop: 2, whiteSpace: "nowrap" }}>{dayLabel}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Table */}
+              <SimpleTable
+                heads={["Date", "Day", "Orders", "Revenue", "Collected"]}
+                emptyMsg="No orders in this range"
+                rows={daily.map(d => {
+                  const dateObj = new Date(d.date);
+                  return [
+                    <span style={{ fontWeight: 700, color: T.primary }}>{d.date}</span>,
+                    dateObj.toLocaleDateString("en-IN", { weekday: "short" }),
+                    d.orders > 0
+                      ? <span style={{ fontWeight: 700 }}>{num(d.orders)}</span>
+                      : <span style={{ color: "#cbd5e1" }}>—</span>,
+                    d.revenue > 0
+                      ? <span style={{ fontWeight: 700, color: T.green }}>{money(d.revenue)}</span>
+                      : <span style={{ color: "#cbd5e1" }}>—</span>,
+                    d.collected > 0 ? money(d.collected) : <span style={{ color: "#cbd5e1" }}>—</span>,
+                  ];
+                })}
+              />
+            </>
+          )}
+
+          {/* Top products in range */}
+          {topProds.length > 0 && (
+            <div style={{ marginTop: 24 }}>
+              <p style={{ margin: "0 0 10px", fontSize: 12, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .5 }}>
+                🏆 Top Products in This Period
+              </p>
+              <SimpleTable
+                heads={["#", "Product", "Category", "Units Sold", "Orders", "Revenue", "Bar"]}
+                rows={topProds.map((p, i) => {
+                  const pct = Math.round((p.units_sold / maxProdUnits) * 100);
+                  const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : <span style={{ color: T.sub, fontWeight: 700 }}>#{i+1}</span>;
+                  return [
+                    medal,
+                    <span style={{ fontWeight: 700 }}>{p.name}</span>,
+                    <span style={{ color: T.sub, fontSize: 12 }}>{p.category_name}</span>,
+                    <span style={{ fontWeight: 700, color: T.green }}>{num(p.units_sold)}</span>,
+                    num(p.order_count),
+                    <span style={{ fontWeight: 700, color: T.primary }}>{money(p.total_revenue)}</span>,
+                    <div style={{ width: 100, height: 7, background: "#e2e8f0", borderRadius: 4, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${pct}%`, background: T.green, borderRadius: 4 }} />
+                    </div>,
+                  ];
+                })}
+              />
+            </div>
+          )}
+
+          {/* Orders list */}
+          {orders.length > 0 && (
+            <div style={{ marginTop: 24 }}>
+              <p style={{ margin: "0 0 10px", fontSize: 12, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: .5 }}>
+                🧾 All Orders ({num(orders.length)}{orders.length === 200 ? "+" : ""})
+              </p>
+              <SimpleTable
+                heads={["Bill #", "Customer", "Items", "Total", "Paid", "Mode", "Status", "Date & Time"]}
+                rows={orders.map(o => [
+                  <span style={{ fontWeight: 700, color: T.primary, fontSize: 12 }}>{o.bill_number}</span>,
+                  <span style={{ fontWeight: 600 }}>{o.customer_name}</span>,
+                  num(o.item_count),
+                  <span style={{ fontWeight: 700 }}>{money(o.total_amount)}</span>,
+                  money(o.paid_amount),
+                  <span style={{ textTransform: "capitalize", fontSize: 12, fontWeight: 600 }}>{o.payment_mode}</span>,
+                  <StatusBadge status={o.status} />,
+                  <span style={{ fontSize: 12, color: T.sub }}>
+                    {new Date(o.created_at).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  </span>,
+                ])}
+              />
+            </div>
+          )}
+
+          {/* No data state */}
+          {s.total_orders === 0 && (
+            <div style={{ textAlign: "center", padding: "40px 0", color: T.sub }}>
+              <div style={{ fontSize: 40 }}>📭</div>
+              <p style={{ marginTop: 10, fontWeight: 700 }}>No orders found for this date range</p>
+              <p style={{ margin: "4px 0 0", fontSize: 13 }}>Try selecting a different period</p>
+            </div>
+          )}
+        </>
       )}
-      {hook.activeTab === "bestProducts" && (
-        <BestProductsTab
-          bpFrom={hook.bpFrom} setBpFrom={hook.setBpFrom}
-          bpTo={hook.bpTo} setBpTo={hook.setBpTo}
-          bpSortBy={hook.bpSortBy} setBpSortBy={hook.setBpSortBy}
-          bpData={hook.bpData} loading={hook.loading}
-        />
+
+      {/* Empty state before first search */}
+      {!drLoading && !drData && !drError && (
+        <div style={{ textAlign: "center", padding: "36px 0", color: T.sub }}>
+          <div style={{ fontSize: 40 }}>📅</div>
+          <p style={{ marginTop: 10, fontWeight: 700 }}>Select a date range above and click Generate Report</p>
+        </div>
       )}
-      {hook.activeTab === "profit" && (
-        <ProfitTab
-          profitFrom={hook.profitFrom} setProfitFrom={hook.setProfitFrom}
-          profitTo={hook.profitTo} setProfitTo={hook.setProfitTo}
-          profitData={hook.profitData} loading={hook.loading}
-        />
-      )}
+    </Card>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN
+// ─────────────────────────────────────────────────────────────────────────────
+export default function Reports() {
+  const {
+    data, loading, error, refresh,
+    drFrom, setDrFrom, drTo, setDrTo,
+    drData, drLoading, drError, fetchDateRange,
+  } = useReports();
+
+  if (loading) return (
+    <div style={{ minHeight: "60vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: T.sub }}>
+      <div style={{ width: 40, height: 40, border: `3px solid ${T.border}`, borderTopColor: T.primary, borderRadius: "50%", animation: "spin .7s linear infinite" }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <p style={{ marginTop: 14, fontWeight: 600 }}>Loading reports…</p>
+    </div>
+  );
+
+  if (error) return (
+    <div style={{ padding: 32, textAlign: "center" }}>
+      <p style={{ color: T.red, fontWeight: 700, marginBottom: 12 }}>⚠️ {error}</p>
+      <button onClick={refresh} style={{ background: T.primary, color: "#fff", border: "none", padding: "9px 24px", borderRadius: 8, cursor: "pointer", fontWeight: 700 }}>
+        Retry
+      </button>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: "24px 28px", background: T.bg, minHeight: "100vh" }}>
+
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28, flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: T.text }}>📊 Reports</h1>
+          <p style={{ margin: "4px 0 0", color: T.sub, fontSize: 14 }}>
+            Sales performance, top products &amp; stock status
+            {data?.generated_at && (
+              <span style={{ marginLeft: 12, fontSize: 12, color: "#94a3b8" }}>
+                Last updated: {new Date(data.generated_at).toLocaleTimeString("en-IN")}
+              </span>
+            )}
+          </p>
+        </div>
+        <button onClick={refresh}
+          style={{ background: T.primary, color: "#fff", border: "none", padding: "9px 20px", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: 14, boxShadow: "0 2px 8px rgba(79,70,229,.3)" }}>
+          ↺ Refresh
+        </button>
+      </div>
+
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+
+      {/* 1. Custom Date Range Report */}
+      <DateRangeSection
+        drFrom={drFrom} setDrFrom={setDrFrom}
+        drTo={drTo} setDrTo={setDrTo}
+        drData={drData} drLoading={drLoading}
+        drError={drError} fetchDateRange={fetchDateRange}
+      />
+
+      {/* 2. Collection Summary */}
+      <CollectionSection collection={data?.collection} dailyBar={data?.daily_bar} />
+
+      {/* 3. Top Selling Products */}
+      <TopProductsSection topByQty={data?.top_by_qty} topByRevenue={data?.top_by_revenue} />
+
+      {/* 4. Low Stock / Stock Report */}
+      <LowStockSection
+        lowStock={data?.low_stock}
+        outOfStockCount={data?.out_of_stock_count ?? 0}
+        lowStockCount={data?.low_stock_count ?? 0}
+      />
+
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { useAuth } from "./hooks/useAuth";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 import Login          from "./Auth/Login";
@@ -25,6 +26,14 @@ import Orders            from "./pages/shop/Orders";
 import ShopSettings    from "./pages/shop/ShopSettings";
 import Reports         from "./pages/shop/Reports";
 import ShopLayout     from "./components/ShopLayout";
+
+/** Redirects to the user's dashboard if already logged in, otherwise /login */
+const SmartRedirect = () => {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role === "superadmin") return <Navigate to="/super/dashboard" replace />;
+  return <Navigate to={`/shop/${user.shop_id}/dashboard`} replace />;
+};
 
 /** Layout route: protects all /shop/:id/* paths and injects the sidebar */
 const ShopAdminLayout = () => (
@@ -88,8 +97,9 @@ function App() {
             <Route path="/shop/:id/orders/completed" element={<Orders filter="completed" />} />
             <Route path="/shop/:id/orders/pending"   element={<Orders filter="pending" />} />
             <Route path="/shop/:id/orders/refunded"  element={<Orders filter="refunded" />} />
+            <Route path="/shop/:id/reports"           element={<Reports />} />
             <Route path="/shop/:id/settings"             element={<ShopSettings />} />
-            <Route path="/shop/:id/reports"              element={<Reports />} />
+
           </Route>
 
           {/* ── Cashier routes ───────────────────────────────────────────── */}
@@ -106,8 +116,8 @@ function App() {
           />
 
           {/* ── Default redirect ─────────────────────────────────────────── */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<SmartRedirect />} />
+          <Route path="*" element={<SmartRedirect />} />
 
         </Routes>
       </BrowserRouter>

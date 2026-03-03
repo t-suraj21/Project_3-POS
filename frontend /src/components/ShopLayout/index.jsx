@@ -57,7 +57,7 @@ const ShopLayout = ({ children }) => {
         <p style={s.navSection}>MAIN MENU</p>
 
         <nav style={s.nav}>
-          {/* Dashboard */}
+          {/* 1 — Dashboard */}
           <NavLink
             to={`${base}/dashboard`}
             style={({ isActive }) => ({ ...s.navLink, ...(isActive ? s.navLinkActive : {}) })}
@@ -71,51 +71,7 @@ const ShopLayout = ({ children }) => {
             )}
           </NavLink>
 
-          {/* Products */}
-          <div>
-            <button
-              style={{ ...s.navLink, ...s.navBtn, ...(prodOpen ? s.navGroupOpen : {}) }}
-              onClick={() => setProdOpen((v) => !v)}
-            >
-              <span style={s.navIcon}>📦</span>
-              <span style={{ flex: 1, textAlign: "left" }}>Products</span>
-              <span style={s.chevron}>{prodOpen ? "▾" : "▸"}</span>
-            </button>
-            {prodOpen && (
-              <div style={s.subMenu}>
-                <NavLink to={`${base}/add-product`} style={({ isActive }) => ({ ...s.subLink, ...(isActive ? s.subLinkActive : {}) })}>
-                  <span style={s.subDot} /> Add New
-                </NavLink>
-                <NavLink to={`${base}/products`} end style={({ isActive }) => ({ ...s.subLink, ...(isActive ? s.subLinkActive : {}) })}>
-                  <span style={s.subDot} /> All Products
-                </NavLink>
-              </div>
-            )}
-          </div>
-
-          {/* Categories */}
-          <div>
-            <button
-              style={{ ...s.navLink, ...s.navBtn, ...(catOpen ? s.navGroupOpen : {}) }}
-              onClick={() => setCatOpen((v) => !v)}
-            >
-              <span style={s.navIcon}>🗂️</span>
-              <span style={{ flex: 1, textAlign: "left" }}>Categories</span>
-              <span style={s.chevron}>{catOpen ? "▾" : "▸"}</span>
-            </button>
-            {catOpen && (
-              <div style={s.subMenu}>
-                <NavLink to={`${base}/categories`} end style={({ isActive }) => ({ ...s.subLink, ...(isActive ? s.subLinkActive : {}) })}>
-                  <span style={s.subDot} /> Categories
-                </NavLink>
-                <NavLink to={`${base}/sub-categories`} end style={({ isActive }) => ({ ...s.subLink, ...(isActive ? s.subLinkActive : {}) })}>
-                  <span style={s.subDot} /> Sub-Categories
-                </NavLink>
-              </div>
-            )}
-          </div>
-
-          {/* New Sale */}
+          {/* 2 — New Sale */}
           <NavLink
             to={`${base}/sales`}
             style={({ isActive }) => ({ ...s.navLink, ...(isActive ? s.navLinkActive : {}) })}
@@ -129,7 +85,7 @@ const ShopLayout = ({ children }) => {
             )}
           </NavLink>
 
-          {/* Orders */}
+          {/* 3 — Orders */}
           <div>
             <button
               style={{ ...s.navLink, ...s.navBtn, ...(ordOpen ? s.navGroupOpen : {}) }}
@@ -157,7 +113,51 @@ const ShopLayout = ({ children }) => {
             )}
           </div>
 
-          {/* Account Management */}
+          {/* 4 — Products */}
+          <div>
+            <button
+              style={{ ...s.navLink, ...s.navBtn, ...(prodOpen ? s.navGroupOpen : {}) }}
+              onClick={() => setProdOpen((v) => !v)}
+            >
+              <span style={s.navIcon}>📦</span>
+              <span style={{ flex: 1, textAlign: "left" }}>Products</span>
+              <span style={s.chevron}>{prodOpen ? "▾" : "▸"}</span>
+            </button>
+            {prodOpen && (
+              <div style={s.subMenu}>
+                <NavLink to={`${base}/add-product`} style={({ isActive }) => ({ ...s.subLink, ...(isActive ? s.subLinkActive : {}) })}>
+                  <span style={s.subDot} /> Add New
+                </NavLink>
+                <NavLink to={`${base}/products`} end style={({ isActive }) => ({ ...s.subLink, ...(isActive ? s.subLinkActive : {}) })}>
+                  <span style={s.subDot} /> All Products
+                </NavLink>
+              </div>
+            )}
+          </div>
+
+          {/* 5 — Categories */}
+          <div>
+            <button
+              style={{ ...s.navLink, ...s.navBtn, ...(catOpen ? s.navGroupOpen : {}) }}
+              onClick={() => setCatOpen((v) => !v)}
+            >
+              <span style={s.navIcon}>🗂️</span>
+              <span style={{ flex: 1, textAlign: "left" }}>Categories</span>
+              <span style={s.chevron}>{catOpen ? "▾" : "▸"}</span>
+            </button>
+            {catOpen && (
+              <div style={s.subMenu}>
+                <NavLink to={`${base}/categories`} end style={({ isActive }) => ({ ...s.subLink, ...(isActive ? s.subLinkActive : {}) })}>
+                  <span style={s.subDot} /> Categories
+                </NavLink>
+                <NavLink to={`${base}/sub-categories`} end style={({ isActive }) => ({ ...s.subLink, ...(isActive ? s.subLinkActive : {}) })}>
+                  <span style={s.subDot} /> Sub-Categories
+                </NavLink>
+              </div>
+            )}
+          </div>
+
+          {/* 6 — Account Management */}
           <div>
             <button
               style={{ ...s.navLink, ...s.navBtn, ...(acctOpen ? s.navGroupOpen : {}) }}
@@ -176,7 +176,21 @@ const ShopLayout = ({ children }) => {
             )}
           </div>
 
-          {/* Settings */}
+          {/* 7 — Reports */}
+          <NavLink
+            to={`${base}/reports`}
+            style={({ isActive }) => ({ ...s.navLink, ...(isActive ? s.navLinkActive : {}) })}
+          >
+            {({ isActive }) => (
+              <>
+                {isActive && <span style={s.activeBar} />}
+                <span style={s.navIcon}>📊</span>
+                <span>Reports</span>
+              </>
+            )}
+          </NavLink>
+
+          {/* 8 — Settings */}
           <NavLink
             to={`${base}/settings`}
             style={({ isActive }) => ({ ...s.navLink, ...(isActive ? s.navLinkActive : {}) })}
@@ -190,19 +204,6 @@ const ShopLayout = ({ children }) => {
             )}
           </NavLink>
 
-          {/* Reports */}
-          <NavLink
-            to={`${base}/reports`}
-            style={({ isActive }) => ({ ...s.navLink, ...(isActive ? s.navLinkActive : {}) })}
-          >
-            {({ isActive }) => (
-              <>
-                {isActive && <span style={s.activeBar} />}
-                <span style={s.navIcon}>📊</span>
-                <span>Reports</span>
-              </>
-            )}
-          </NavLink>
         </nav>
 
         {/* Footer */}

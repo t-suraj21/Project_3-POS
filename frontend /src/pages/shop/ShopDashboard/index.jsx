@@ -22,7 +22,7 @@ const OVERVIEW_CARDS = [
 // ── Business summary cards ────────────────────────────────────────────────────
 const SUMMARY_CARDS = [
   { key: "sales_all_time",    label: "Total Orders (All Time)",  icon: "🧾", bg: "#f0fdf4", iconBg: "#bbf7d0", color: "#15803d", path: "orders",          isMoney: false },
-  { key: "revenue_all_time",  label: "Total Revenue (All Time)", icon: "💰", bg: "#fffbeb", iconBg: "#fde68a", color: "#b45309", path: "reports",          isMoney: true  },
+  { key: "revenue_all_time",  label: "Total Revenue (All Time)", icon: "💰", bg: "#fffbeb", iconBg: "#fde68a", color: "#b45309", path: "reports", isMoney: true  },
   { key: "refunded_count",    label: "Refunded Orders",          icon: "↩️", bg: "#fff1f2", iconBg: "#fecdd3", color: "#be123c", path: "orders",          isMoney: false },
   { key: "outstanding_credit",label: "Outstanding Credit",       icon: "📋", bg: "#fff7ed", iconBg: "#fed7aa", color: "#c2410c", path: "accounts",         isMoney: true  },
 ];

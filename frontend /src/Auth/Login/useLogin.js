@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import { useAuth } from "../../hooks/useAuth";
@@ -11,8 +11,18 @@ const useLogin = () => {
   const [resending,     setResending]     = useState(false);
   const [resendSuccess, setResendSuccess] = useState("");
 
-  const { login }  = useAuth();
-  const navigate   = useNavigate();
+  const { login, user } = useAuth();
+  const navigate = useNavigate();
+
+  // Already logged in → skip the login page entirely
+  useEffect(() => {
+    if (!user) return;
+    if (user.role === "superadmin") {
+      navigate("/super/dashboard", { replace: true });
+    } else {
+      navigate(`/shop/${user.shop_id}/dashboard`, { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
