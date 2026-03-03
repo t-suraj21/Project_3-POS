@@ -16,7 +16,7 @@ function generateJWT(array $user): string
     $payload = [
         "iss"     => "pos_app",
         "iat"     => time(),
-        "exp"     => time() + (60 * 60 * 24), // 24 hours
+        "exp"     => time() + (60 * 60 * 24 * 7), // 7 days
         "id"      => $user['id'],
         "email"   => $user['email'],
         "role"    => $user['role'],

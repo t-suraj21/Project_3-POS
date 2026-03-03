@@ -3,424 +3,380 @@ require_once __DIR__ . "/../config/database.php";
 
 /**
  * ReportController
- * Four report endpoints for the POS reporting page:
- *   1. Daily Sales Report     GET /api/reports/daily?date=YYYY-MM-DD
- *   2. Monthly Sales Report   GET /api/reports/monthly?year=YYYY&month=MM
- *   3. Best Products Report   GET /api/reports/best-products?from=...&to=...&limit=20
- *   4. Profit Report          GET /api/reports/profit?from=...&to=...
+ * Single endpoint: GET /api/reports/summary
+ * Returns:
+ *   - collection  : today / week / month / year totals + payment-mode breakdown
+ *   - top_products: best-selling by units and by revenue (last 30 days + all time)
+ *   - low_stock   : products at or below alert threshold
  */
 class ReportController
 {
-    // ─── 1. DAILY SALES REPORT ────────────────────────────────────────────────
-    // GET /api/reports/daily?date=YYYY-MM-DD
-    public static function daily(array $user): void
+    public static function summary(array $user): void
     {
         global $conn;
         $shopId = (int) $user['shop_id'];
-        $date   = $_GET['date'] ?? date('Y-m-d');
 
-        // Validate date format
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
-            $date = date('Y-m-d');
+        // ════════════════════════════════════════════════════════════════
+        // 1. COLLECTION SUMMARY — today / week / month / year
+        // ════════════════════════════════════════════════════════════════
+
+        $periods = [
+            'today' => [
+                "DATE(created_at) = CURDATE()",
+            ],
+            'week' => [
+                "YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)",
+            ],
+            'month' => [
+                "MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())",
+            ],
+            'year' => [
+                "YEAR(created_at) = YEAR(CURDATE())",
+            ],
+        ];
+
+        $collection = [];
+        foreach ($periods as $key => $conds) {
+            $where = $conds[0];
+            $stmt = $conn->prepare("
+                SELECT
+                    COUNT(*)                                                              AS total_orders,
+                    COALESCE(SUM(total_amount), 0)                                        AS total_revenue,
+                    COALESCE(SUM(paid_amount),  0)                                        AS total_collected,
+                    COALESCE(SUM(total_amount - paid_amount), 0)                          AS total_balance,
+                    COALESCE(SUM(discount),     0)                                        AS total_discount,
+                    COALESCE(SUM(CASE WHEN payment_mode='cash'   THEN paid_amount ELSE 0 END), 0) AS cash,
+                    COALESCE(SUM(CASE WHEN payment_mode='upi'    THEN paid_amount ELSE 0 END), 0) AS upi,
+                    COALESCE(SUM(CASE WHEN payment_mode='card'   THEN paid_amount ELSE 0 END), 0) AS card,
+                    COALESCE(SUM(CASE WHEN payment_mode='credit' THEN paid_amount ELSE 0 END), 0) AS credit,
+                    SUM(payment_mode = 'cash')   AS cash_orders,
+                    SUM(payment_mode = 'upi')    AS upi_orders,
+                    SUM(payment_mode = 'card')   AS card_orders,
+                    SUM(payment_mode = 'credit') AS credit_orders,
+                    SUM(status = 'paid')         AS completed_orders,
+                    SUM(status IN ('partial','credit')) AS pending_orders,
+                    SUM(status = 'refunded')     AS refunded_orders
+                FROM sales
+                WHERE shop_id = ? AND $where AND status != 'refunded'
+            ");
+            $stmt->execute([$shopId]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // cast to proper types
+            $collection[$key] = [
+                'total_orders'      => (int)   $row['total_orders'],
+                'total_revenue'     => (float) $row['total_revenue'],
+                'total_collected'   => (float) $row['total_collected'],
+                'total_balance'     => (float) $row['total_balance'],
+                'total_discount'    => (float) $row['total_discount'],
+                'cash'              => (float) $row['cash'],
+                'upi'               => (float) $row['upi'],
+                'card'              => (float) $row['card'],
+                'credit'            => (float) $row['credit'],
+                'cash_orders'       => (int)   $row['cash_orders'],
+                'upi_orders'        => (int)   $row['upi_orders'],
+                'card_orders'       => (int)   $row['card_orders'],
+                'credit_orders'     => (int)   $row['credit_orders'],
+                'completed_orders'  => (int)   $row['completed_orders'],
+                'pending_orders'    => (int)   $row['pending_orders'],
+            ];
         }
 
-        // ── Summary totals for the day ────────────────────────────────────────
+        // Daily breakdown for current month (for the mini bar chart)
         $stmt = $conn->prepare("
             SELECT
-                COUNT(*)                                        AS total_orders,
-                COALESCE(SUM(total_amount),  0)                 AS total_revenue,
-                COALESCE(SUM(paid_amount),   0)                 AS total_paid,
-                COALESCE(SUM(total_amount - paid_amount), 0)    AS total_balance,
-                COALESCE(SUM(discount),      0)                 AS total_discount,
-                COALESCE(SUM(tax_amount),    0)                 AS total_tax,
-                SUM(payment_mode = 'cash')                      AS cash_orders,
-                SUM(payment_mode = 'upi')                       AS upi_orders,
-                SUM(payment_mode = 'card')                      AS card_orders,
-                SUM(payment_mode = 'credit')                    AS credit_orders,
-                COALESCE(SUM(CASE WHEN payment_mode='cash'   THEN total_amount ELSE 0 END), 0) AS cash_revenue,
-                COALESCE(SUM(CASE WHEN payment_mode='upi'    THEN total_amount ELSE 0 END), 0) AS upi_revenue,
-                COALESCE(SUM(CASE WHEN payment_mode='card'   THEN total_amount ELSE 0 END), 0) AS card_revenue,
-                COALESCE(SUM(CASE WHEN payment_mode='credit' THEN total_amount ELSE 0 END), 0) AS credit_revenue,
-                SUM(status = 'paid')                            AS completed_orders,
-                SUM(status IN ('credit','partial'))             AS pending_orders,
-                SUM(status = 'refunded')                        AS refunded_orders
+                DAY(created_at)              AS day,
+                COUNT(*)                     AS orders,
+                COALESCE(SUM(total_amount),0) AS revenue
             FROM sales
-            WHERE shop_id = ? AND DATE(created_at) = ?
-              AND status != 'refunded'
-        ");
-        $stmt->execute([$shopId, $date]);
-        $summary = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        // ── Hourly breakdown ──────────────────────────────────────────────────
-        $stmt = $conn->prepare("
-            SELECT
-                HOUR(created_at)                    AS hour,
-                COUNT(*)                            AS orders,
-                COALESCE(SUM(total_amount), 0)      AS revenue
-            FROM sales
-            WHERE shop_id = ? AND DATE(created_at) = ?
-              AND status != 'refunded'
-            GROUP BY HOUR(created_at)
-            ORDER BY hour ASC
-        ");
-        $stmt->execute([$shopId, $date]);
-        $hourly = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Fill all 24 hours (so the chart has a complete array)
-        $hourlyFull = array_fill(0, 24, ['hour' => 0, 'orders' => 0, 'revenue' => 0.0]);
-        foreach ($hourlyFull as $h => $v) $hourlyFull[$h]['hour'] = $h;
-        foreach ($hourly as $row) {
-            $h = (int) $row['hour'];
-            $hourlyFull[$h] = ['hour' => $h, 'orders' => (int)$row['orders'], 'revenue' => (float)$row['revenue']];
-        }
-
-        // ── All sales for the day (latest first) ──────────────────────────────
-        $stmt = $conn->prepare("
-            SELECT s.id, s.bill_number, s.customer_name, s.customer_phone,
-                   s.total_amount, s.paid_amount, s.payment_mode, s.status,
-                   s.created_at,
-                   COUNT(si.id) AS item_count
-            FROM sales s
-            LEFT JOIN sale_items si ON si.sale_id = s.id
-            WHERE s.shop_id = ? AND DATE(s.created_at) = ?
-            GROUP BY s.id
-            ORDER BY s.created_at DESC
-        ");
-        $stmt->execute([$shopId, $date]);
-        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        echo json_encode([
-            "date"    => $date,
-            "summary" => $summary,
-            "hourly"  => array_values($hourlyFull),
-            "orders"  => $orders,
-        ]);
-    }
-
-    // ─── 2. MONTHLY SALES REPORT ──────────────────────────────────────────────
-    // GET /api/reports/monthly?year=YYYY&month=MM
-    public static function monthly(array $user): void
-    {
-        global $conn;
-        $shopId = (int) $user['shop_id'];
-        $year   = (int) ($_GET['year']  ?? date('Y'));
-        $month  = (int) ($_GET['month'] ?? date('n'));
-
-        // Clamp values
-        $year  = max(2020, min(2099, $year));
-        $month = max(1,    min(12,   $month));
-
-        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $month, $year);
-        $monthStr    = sprintf('%04d-%02d', $year, $month);
-
-        // ── Monthly summary ───────────────────────────────────────────────────
-        $stmt = $conn->prepare("
-            SELECT
-                COUNT(*)                                     AS total_orders,
-                COALESCE(SUM(total_amount), 0)               AS total_revenue,
-                COALESCE(SUM(paid_amount),  0)               AS total_paid,
-                COALESCE(SUM(discount),     0)               AS total_discount,
-                COALESCE(SUM(tax_amount),   0)               AS total_tax,
-                SUM(status = 'paid')                         AS completed_orders,
-                SUM(status IN ('credit','partial'))          AS pending_orders,
-                SUM(status = 'refunded')                     AS refunded_orders,
-                COALESCE(SUM(CASE WHEN payment_mode='cash'   THEN total_amount ELSE 0 END), 0) AS cash_revenue,
-                COALESCE(SUM(CASE WHEN payment_mode='upi'    THEN total_amount ELSE 0 END), 0) AS upi_revenue,
-                COALESCE(SUM(CASE WHEN payment_mode='card'   THEN total_amount ELSE 0 END), 0) AS card_revenue,
-                COALESCE(SUM(CASE WHEN payment_mode='credit' THEN total_amount ELSE 0 END), 0) AS credit_revenue
-            FROM sales
-            WHERE shop_id = ? AND DATE_FORMAT(created_at, '%Y-%m') = ?
-              AND status != 'refunded'
-        ");
-        $stmt->execute([$shopId, $monthStr]);
-        $summary = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        // ── Previous month for comparison ─────────────────────────────────────
-        $prevYear  = $month === 1 ? $year - 1 : $year;
-        $prevMonth = $month === 1 ? 12 : $month - 1;
-        $prevStr   = sprintf('%04d-%02d', $prevYear, $prevMonth);
-
-        $stmt = $conn->prepare("
-            SELECT
-                COALESCE(SUM(total_amount), 0) AS total_revenue,
-                COUNT(*)                        AS total_orders
-            FROM sales
-            WHERE shop_id = ? AND DATE_FORMAT(created_at, '%Y-%m') = ?
-              AND status != 'refunded'
-        ");
-        $stmt->execute([$shopId, $prevStr]);
-        $prevMonth_data = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        // ── Daily breakdown within month ──────────────────────────────────────
-        $stmt = $conn->prepare("
-            SELECT
-                DAY(created_at)                      AS day,
-                COUNT(*)                             AS orders,
-                COALESCE(SUM(total_amount), 0)       AS revenue,
-                COALESCE(SUM(paid_amount), 0)        AS paid
-            FROM sales
-            WHERE shop_id = ? AND DATE_FORMAT(created_at, '%Y-%m') = ?
+            WHERE shop_id = ?
+              AND MONTH(created_at) = MONTH(CURDATE())
+              AND YEAR(created_at)  = YEAR(CURDATE())
               AND status != 'refunded'
             GROUP BY DAY(created_at)
             ORDER BY day ASC
         ");
-        $stmt->execute([$shopId, $monthStr]);
-        $dailyRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt->execute([$shopId]);
+        $dailyBarRaw = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Fill every day (1 to daysInMonth)
-        $daily = [];
+        // fill all days of current month
+        $daysInMonth = (int) date('t');
+        $dailyBar = [];
         $dayMap = [];
-        foreach ($dailyRows as $r) $dayMap[(int)$r['day']] = $r;
+        foreach ($dailyBarRaw as $r) $dayMap[(int)$r['day']] = $r;
         for ($d = 1; $d <= $daysInMonth; $d++) {
-            $daily[] = isset($dayMap[$d])
-                ? ['day' => $d, 'orders' => (int)$dayMap[$d]['orders'], 'revenue' => (float)$dayMap[$d]['revenue'], 'paid' => (float)$dayMap[$d]['paid']]
-                : ['day' => $d, 'orders' => 0, 'revenue' => 0.0, 'paid' => 0.0];
+            $dailyBar[] = [
+                'day'     => $d,
+                'orders'  => isset($dayMap[$d]) ? (int)   $dayMap[$d]['orders']  : 0,
+                'revenue' => isset($dayMap[$d]) ? (float) $dayMap[$d]['revenue'] : 0.0,
+            ];
         }
 
-        // ── Week-by-week breakdown ────────────────────────────────────────────
+        // ════════════════════════════════════════════════════════════════
+        // 2. TOP PRODUCTS — best selling (all-time, by qty & revenue)
+        // ════════════════════════════════════════════════════════════════
+
+        // By units sold (all time)
         $stmt = $conn->prepare("
             SELECT
-                CEIL(DAY(created_at) / 7)           AS week_num,
-                COUNT(*)                             AS orders,
-                COALESCE(SUM(total_amount), 0)       AS revenue
+                p.id,
+                p.name,
+                p.sku,
+                p.sell_price,
+                p.stock,
+                c.name                         AS category_name,
+                COALESCE(SUM(si.quantity), 0)  AS units_sold,
+                COALESCE(SUM(si.total),    0)  AS total_revenue,
+                COUNT(DISTINCT si.sale_id)     AS order_count
+            FROM products p
+            LEFT JOIN sale_items si ON si.product_id = p.id
+            LEFT JOIN sales s ON s.id = si.sale_id AND s.status != 'refunded' AND s.shop_id = ?
+            LEFT JOIN categories c ON c.id = p.category_id
+            WHERE p.shop_id = ?
+            GROUP BY p.id, p.name, p.sku, p.sell_price, p.stock, c.name
+            ORDER BY units_sold DESC
+            LIMIT 20
+        ");
+        $stmt->execute([$shopId, $shopId]);
+        $topByQty = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // cast
+        $topByQty = array_map(function ($r) {
+            return [
+                'id'            => (int)   $r['id'],
+                'name'          => $r['name'],
+                'sku'           => $r['sku'],
+                'sell_price'    => (float) $r['sell_price'],
+                'stock'         => (int)   $r['stock'],
+                'category_name' => $r['category_name'] ?? 'Uncategorised',
+                'units_sold'    => (int)   $r['units_sold'],
+                'total_revenue' => (float) $r['total_revenue'],
+                'order_count'   => (int)   $r['order_count'],
+            ];
+        }, $topByQty);
+
+        // By revenue (all time) — re-sort the same list
+        $topByRevenue = $topByQty; // already fetched; sort by total_revenue desc
+        usort($topByRevenue, fn($a, $b) => $b['total_revenue'] <=> $a['total_revenue']);
+
+        // ════════════════════════════════════════════════════════════════
+        // 3. LOW STOCK REPORT
+        // ════════════════════════════════════════════════════════════════
+
+        $stmt = $conn->prepare("
+            SELECT
+                p.id,
+                p.name,
+                p.sku,
+                p.stock,
+                p.alert_stock,
+                p.sell_price,
+                p.cost_price,
+                c.name AS category_name
+            FROM products p
+            LEFT JOIN categories c ON c.id = p.category_id
+            WHERE p.shop_id = ? AND p.stock <= p.alert_stock
+            ORDER BY p.stock ASC, p.name ASC
+        ");
+        $stmt->execute([$shopId]);
+        $lowStock = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $lowStock = array_map(function ($r) {
+            return [
+                'id'            => (int)   $r['id'],
+                'name'          => $r['name'],
+                'sku'           => $r['sku'],
+                'stock'         => (int)   $r['stock'],
+                'alert_stock'   => (int)   $r['alert_stock'],
+                'sell_price'    => (float) $r['sell_price'],
+                'cost_price'    => (float) $r['cost_price'],
+                'category_name' => $r['category_name'] ?? 'Uncategorised',
+            ];
+        }, $lowStock);
+
+        // ════════════════════════════════════════════════════════════════
+        // 4. OUT-OF-STOCK COUNT
+        // ════════════════════════════════════════════════════════════════
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM products WHERE shop_id = ? AND stock = 0");
+        $stmt->execute([$shopId]);
+        $outOfStockCount = (int) $stmt->fetchColumn();
+
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM products WHERE shop_id = ? AND stock > 0 AND stock <= alert_stock");
+        $stmt->execute([$shopId]);
+        $lowStockCount = (int) $stmt->fetchColumn();
+
+        // ════════════════════════════════════════════════════════════════
+        // Response
+        // ════════════════════════════════════════════════════════════════
+        echo json_encode([
+            'collection'       => $collection,
+            'daily_bar'        => $dailyBar,
+            'top_by_qty'       => $topByQty,
+            'top_by_revenue'   => $topByRevenue,
+            'low_stock'        => $lowStock,
+            'out_of_stock_count' => $outOfStockCount,
+            'low_stock_count'    => $lowStockCount,
+            'generated_at'     => date('Y-m-d H:i:s'),
+        ]);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // DATE-RANGE REPORT
+    // GET /api/reports/date-range?from=YYYY-MM-DD&to=YYYY-MM-DD
+    // ════════════════════════════════════════════════════════════════════════
+    public static function dateRange(array $user): void
+    {
+        global $conn;
+        $shopId = (int) $user['shop_id'];
+
+        // Validate & default dates
+        $from = $_GET['from'] ?? date('Y-m-d');
+        $to   = $_GET['to']   ?? date('Y-m-d');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from)) $from = date('Y-m-d');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $to))   $to   = date('Y-m-d');
+        // ensure from <= to
+        if ($from > $to) [$from, $to] = [$to, $from];
+
+        // ── 1. Summary totals for the range ──────────────────────────────────
+        $stmt = $conn->prepare("
+            SELECT
+                COUNT(*)                                                               AS total_orders,
+                COALESCE(SUM(total_amount), 0)                                         AS total_revenue,
+                COALESCE(SUM(paid_amount),  0)                                         AS total_collected,
+                COALESCE(SUM(total_amount - paid_amount), 0)                           AS total_balance,
+                COALESCE(SUM(discount), 0)                                             AS total_discount,
+                COALESCE(SUM(tax_amount), 0)                                           AS total_tax,
+                COALESCE(SUM(CASE WHEN payment_mode='cash'   THEN paid_amount ELSE 0 END), 0) AS cash,
+                COALESCE(SUM(CASE WHEN payment_mode='upi'    THEN paid_amount ELSE 0 END), 0) AS upi,
+                COALESCE(SUM(CASE WHEN payment_mode='card'   THEN paid_amount ELSE 0 END), 0) AS card,
+                COALESCE(SUM(CASE WHEN payment_mode='credit' THEN paid_amount ELSE 0 END), 0) AS credit,
+                SUM(payment_mode = 'cash')              AS cash_orders,
+                SUM(payment_mode = 'upi')               AS upi_orders,
+                SUM(payment_mode = 'card')              AS card_orders,
+                SUM(payment_mode = 'credit')            AS credit_orders,
+                SUM(status = 'paid')                    AS completed_orders,
+                SUM(status IN ('partial','credit'))     AS pending_orders,
+                SUM(status = 'refunded')                AS refunded_orders
             FROM sales
-            WHERE shop_id = ? AND DATE_FORMAT(created_at, '%Y-%m') = ?
+            WHERE shop_id = ?
+              AND DATE(created_at) BETWEEN ? AND ?
               AND status != 'refunded'
-            GROUP BY week_num
-            ORDER BY week_num ASC
-        ");
-        $stmt->execute([$shopId, $monthStr]);
-        $weekly = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        echo json_encode([
-            "year"       => $year,
-            "month"      => $month,
-            "month_name" => date('F Y', mktime(0,0,0,$month,1,$year)),
-            "summary"    => $summary,
-            "prev_month" => $prevMonth_data,
-            "daily"      => $daily,
-            "weekly"     => $weekly,
-        ]);
-    }
-
-    // ─── 3. BEST PRODUCTS REPORT ──────────────────────────────────────────────
-    // GET /api/reports/best-products?from=YYYY-MM-DD&to=YYYY-MM-DD&limit=20
-    public static function bestProducts(array $user): void
-    {
-        global $conn;
-        $shopId = (int) $user['shop_id'];
-        $from   = $_GET['from']  ?? date('Y-m-01');
-        $to     = $_GET['to']    ?? date('Y-m-d');
-        $limit  = min((int)($_GET['limit'] ?? 20), 100);
-
-        // Validate dates
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from)) $from = date('Y-m-01');
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $to))   $to   = date('Y-m-d');
-
-        // ── Top products by quantity ──────────────────────────────────────────
-        $stmt = $conn->prepare("
-            SELECT
-                si.product_id,
-                si.product_name,
-                SUM(si.quantity)                    AS total_qty,
-                COALESCE(SUM(si.total), 0)          AS total_revenue,
-                COALESCE(SUM(si.quantity * si.cost_price), 0) AS total_cost,
-                COALESCE(SUM(si.total - si.quantity * si.cost_price), 0) AS gross_profit,
-                COUNT(DISTINCT s.id)                AS times_sold,
-                COALESCE(AVG(si.sell_price), 0)     AS avg_price,
-                p.stock                             AS current_stock,
-                c.name                              AS category_name
-            FROM sale_items si
-            JOIN sales s ON s.id = si.sale_id
-                AND s.shop_id = ?
-                AND s.status != 'refunded'
-                AND DATE(s.created_at) BETWEEN ? AND ?
-            LEFT JOIN products   p ON p.id = si.product_id
-            LEFT JOIN categories c ON c.id = p.category_id
-            GROUP BY si.product_id, si.product_name
-            ORDER BY total_qty DESC
-            LIMIT ?
-        ");
-        $stmt->execute([$shopId, $from, $to, $limit]);
-        $byQty = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // ── Top products by revenue ───────────────────────────────────────────
-        $stmt = $conn->prepare("
-            SELECT
-                si.product_id,
-                si.product_name,
-                SUM(si.quantity)                    AS total_qty,
-                COALESCE(SUM(si.total), 0)          AS total_revenue,
-                COALESCE(SUM(si.quantity * si.cost_price), 0) AS total_cost,
-                COALESCE(SUM(si.total - si.quantity * si.cost_price), 0) AS gross_profit,
-                COUNT(DISTINCT s.id)                AS times_sold,
-                p.stock                             AS current_stock,
-                c.name                              AS category_name
-            FROM sale_items si
-            JOIN sales s ON s.id = si.sale_id
-                AND s.shop_id = ?
-                AND s.status != 'refunded'
-                AND DATE(s.created_at) BETWEEN ? AND ?
-            LEFT JOIN products   p ON p.id = si.product_id
-            LEFT JOIN categories c ON c.id = p.category_id
-            GROUP BY si.product_id, si.product_name
-            ORDER BY total_revenue DESC
-            LIMIT ?
-        ");
-        $stmt->execute([$shopId, $from, $to, $limit]);
-        $byRevenue = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // ── Category-level breakdown ──────────────────────────────────────────
-        $stmt = $conn->prepare("
-            SELECT
-                COALESCE(c.name, 'Uncategorized')   AS category,
-                SUM(si.quantity)                    AS total_qty,
-                COALESCE(SUM(si.total), 0)          AS total_revenue,
-                COUNT(DISTINCT si.product_id)       AS unique_products
-            FROM sale_items si
-            JOIN sales s ON s.id = si.sale_id
-                AND s.shop_id = ?
-                AND s.status != 'refunded'
-                AND DATE(s.created_at) BETWEEN ? AND ?
-            LEFT JOIN products   p ON p.id = si.product_id
-            LEFT JOIN categories c ON c.id = p.category_id
-            GROUP BY c.name
-            ORDER BY total_revenue DESC
         ");
         $stmt->execute([$shopId, $from, $to]);
-        $byCategory = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $summary = [
+            'total_orders'     => (int)   $row['total_orders'],
+            'total_revenue'    => (float) $row['total_revenue'],
+            'total_collected'  => (float) $row['total_collected'],
+            'total_balance'    => (float) $row['total_balance'],
+            'total_discount'   => (float) $row['total_discount'],
+            'total_tax'        => (float) $row['total_tax'],
+            'cash'             => (float) $row['cash'],
+            'upi'              => (float) $row['upi'],
+            'card'             => (float) $row['card'],
+            'credit'           => (float) $row['credit'],
+            'cash_orders'      => (int)   $row['cash_orders'],
+            'upi_orders'       => (int)   $row['upi_orders'],
+            'card_orders'      => (int)   $row['card_orders'],
+            'credit_orders'    => (int)   $row['credit_orders'],
+            'completed_orders' => (int)   $row['completed_orders'],
+            'pending_orders'   => (int)   $row['pending_orders'],
+            'refunded_orders'  => (int)   $row['refunded_orders'],
+        ];
 
-        // ── Period summary ────────────────────────────────────────────────────
+        // ── 2. Day-by-day breakdown ───────────────────────────────────────────
         $stmt = $conn->prepare("
             SELECT
-                COUNT(DISTINCT s.id)                    AS total_orders,
-                COALESCE(SUM(si.quantity), 0)           AS total_items_sold,
-                COALESCE(SUM(si.total), 0)              AS total_revenue,
-                COUNT(DISTINCT si.product_id)           AS unique_products_sold
-            FROM sale_items si
-            JOIN sales s ON s.id = si.sale_id
-                AND s.shop_id = ?
-                AND s.status != 'refunded'
-                AND DATE(s.created_at) BETWEEN ? AND ?
-        ");
-        $stmt->execute([$shopId, $from, $to]);
-        $periodSummary = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        echo json_encode([
-            "from"            => $from,
-            "to"              => $to,
-            "period_summary"  => $periodSummary,
-            "by_qty"          => $byQty,
-            "by_revenue"      => $byRevenue,
-            "by_category"     => $byCategory,
-        ]);
-    }
-
-    // ─── 4. PROFIT REPORT ─────────────────────────────────────────────────────
-    // GET /api/reports/profit?from=YYYY-MM-DD&to=YYYY-MM-DD
-    public static function profit(array $user): void
-    {
-        global $conn;
-        $shopId = (int) $user['shop_id'];
-        $from   = $_GET['from'] ?? date('Y-m-01');
-        $to     = $_GET['to']   ?? date('Y-m-d');
-
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from)) $from = date('Y-m-01');
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $to))   $to   = date('Y-m-d');
-
-        // ── Overall profit summary ────────────────────────────────────────────
-        $stmt = $conn->prepare("
-            SELECT
-                COUNT(DISTINCT s.id)                            AS total_orders,
-                COALESCE(SUM(s.total_amount),  0)               AS total_revenue,
-                COALESCE(SUM(s.paid_amount),   0)               AS total_collected,
-                COALESCE(SUM(s.discount),      0)               AS total_discount,
-                COALESCE(SUM(s.tax_amount),    0)               AS total_tax,
-                COALESCE(SUM(si.quantity * si.cost_price), 0)   AS total_cost,
-                COALESCE(SUM(si.total - si.quantity * si.cost_price), 0) AS gross_profit,
-                COALESCE(SUM(s.total_amount - s.paid_amount), 0) AS pending_receivable
-            FROM sales s
-            JOIN sale_items si ON si.sale_id = s.id
-            WHERE s.shop_id = ? AND DATE(s.created_at) BETWEEN ? AND ?
-              AND s.status != 'refunded'
-        ");
-        $stmt->execute([$shopId, $from, $to]);
-        $summary = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        // Compute margin
-        $revenue = (float)($summary['total_revenue'] ?? 0);
-        $cost    = (float)($summary['total_cost']    ?? 0);
-        $profit  = (float)($summary['gross_profit']  ?? 0);
-        $summary['profit_margin'] = $revenue > 0 ? round($profit / $revenue * 100, 2) : 0.0;
-        $summary['net_profit']    = $profit - (float)($summary['total_discount'] ?? 0);
-
-        // ── Daily profit breakdown ────────────────────────────────────────────
-        $stmt = $conn->prepare("
-            SELECT
-                DATE(s.created_at)                              AS sale_date,
-                COUNT(DISTINCT s.id)                            AS orders,
-                COALESCE(SUM(s.total_amount), 0)                AS revenue,
-                COALESCE(SUM(si.quantity * si.cost_price), 0)   AS cost,
-                COALESCE(SUM(si.total - si.quantity * si.cost_price), 0) AS profit
-            FROM sales s
-            JOIN sale_items si ON si.sale_id = s.id
-            WHERE s.shop_id = ? AND DATE(s.created_at) BETWEEN ? AND ?
-              AND s.status != 'refunded'
-            GROUP BY DATE(s.created_at)
+                DATE(created_at)               AS sale_date,
+                COUNT(*)                       AS orders,
+                COALESCE(SUM(total_amount), 0) AS revenue,
+                COALESCE(SUM(paid_amount),  0) AS collected
+            FROM sales
+            WHERE shop_id = ?
+              AND DATE(created_at) BETWEEN ? AND ?
+              AND status != 'refunded'
+            GROUP BY DATE(created_at)
             ORDER BY sale_date ASC
         ");
         $stmt->execute([$shopId, $from, $to]);
-        $daily = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $dailyRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $daily = array_map(fn($r) => [
+            'date'      => $r['sale_date'],
+            'orders'    => (int)   $r['orders'],
+            'revenue'   => (float) $r['revenue'],
+            'collected' => (float) $r['collected'],
+        ], $dailyRows);
 
-        // ── Payment-mode profit split ─────────────────────────────────────────
+        // ── 3. Top products in this range ─────────────────────────────────────
         $stmt = $conn->prepare("
             SELECT
-                s.payment_mode,
-                COUNT(DISTINCT s.id)                            AS orders,
-                COALESCE(SUM(s.total_amount), 0)                AS revenue,
-                COALESCE(SUM(si.quantity * si.cost_price), 0)   AS cost,
-                COALESCE(SUM(si.total - si.quantity * si.cost_price), 0) AS profit
-            FROM sales s
-            JOIN sale_items si ON si.sale_id = s.id
-            WHERE s.shop_id = ? AND DATE(s.created_at) BETWEEN ? AND ?
-              AND s.status != 'refunded'
-            GROUP BY s.payment_mode
-            ORDER BY revenue DESC
-        ");
-        $stmt->execute([$shopId, $from, $to]);
-        $byMode = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // ── Top profitable products ───────────────────────────────────────────
-        $stmt = $conn->prepare("
-            SELECT
-                si.product_name,
-                SUM(si.quantity)                                AS total_qty,
-                COALESCE(SUM(si.total), 0)                      AS revenue,
-                COALESCE(SUM(si.quantity * si.cost_price), 0)   AS cost,
-                COALESCE(SUM(si.total - si.quantity * si.cost_price), 0) AS profit,
-                CASE WHEN SUM(si.total) > 0
-                     THEN ROUND(SUM(si.total - si.quantity * si.cost_price) / SUM(si.total) * 100, 1)
-                     ELSE 0 END                                 AS margin_pct
+                p.name,
+                p.sku,
+                c.name                        AS category_name,
+                COALESCE(SUM(si.quantity), 0) AS units_sold,
+                COALESCE(SUM(si.total),    0) AS total_revenue,
+                COUNT(DISTINCT si.sale_id)    AS order_count
             FROM sale_items si
-            JOIN sales s ON s.id = si.sale_id
-                AND s.shop_id = ?
-                AND s.status != 'refunded'
-                AND DATE(s.created_at) BETWEEN ? AND ?
-            GROUP BY si.product_id, si.product_name
-            ORDER BY profit DESC
+            JOIN sales s  ON s.id  = si.sale_id
+            JOIN products p ON p.id = si.product_id
+            LEFT JOIN categories c ON c.id = p.category_id
+            WHERE s.shop_id = ?
+              AND DATE(s.created_at) BETWEEN ? AND ?
+              AND s.status != 'refunded'
+            GROUP BY p.id, p.name, p.sku, c.name
+            ORDER BY units_sold DESC
             LIMIT 15
         ");
         $stmt->execute([$shopId, $from, $to]);
-        $topProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $topProductsRaw = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $topProducts = array_map(fn($r) => [
+            'name'          => $r['name'],
+            'sku'           => $r['sku'],
+            'category_name' => $r['category_name'] ?? 'Uncategorised',
+            'units_sold'    => (int)   $r['units_sold'],
+            'total_revenue' => (float) $r['total_revenue'],
+            'order_count'   => (int)   $r['order_count'],
+        ], $topProductsRaw);
+
+        // ── 4. Individual orders in the range (latest first, max 200) ─────────
+        $stmt = $conn->prepare("
+            SELECT
+                s.id, s.bill_number,
+                COALESCE(s.customer_name, 'Walk-in') AS customer_name,
+                s.customer_phone,
+                s.total_amount, s.paid_amount,
+                s.payment_mode, s.status,
+                s.created_at,
+                COUNT(si.id) AS item_count
+            FROM sales s
+            LEFT JOIN sale_items si ON si.sale_id = s.id
+            WHERE s.shop_id = ?
+              AND DATE(s.created_at) BETWEEN ? AND ?
+            GROUP BY s.id
+            ORDER BY s.created_at DESC
+            LIMIT 200
+        ");
+        $stmt->execute([$shopId, $from, $to]);
+        $orders = array_map(fn($r) => [
+            'id'            => (int)   $r['id'],
+            'bill_number'   => $r['bill_number'],
+            'customer_name' => $r['customer_name'],
+            'customer_phone'=> $r['customer_phone'],
+            'total_amount'  => (float) $r['total_amount'],
+            'paid_amount'   => (float) $r['paid_amount'],
+            'payment_mode'  => $r['payment_mode'],
+            'status'        => $r['status'],
+            'created_at'    => $r['created_at'],
+            'item_count'    => (int)   $r['item_count'],
+        ], $stmt->fetchAll(PDO::FETCH_ASSOC));
 
         echo json_encode([
-            "from"         => $from,
-            "to"           => $to,
-            "summary"      => $summary,
-            "daily"        => $daily,
-            "by_mode"      => $byMode,
-            "top_products" => $topProducts,
+            'from'         => $from,
+            'to'           => $to,
+            'summary'      => $summary,
+            'daily'        => $daily,
+            'top_products' => $topProducts,
+            'orders'       => $orders,
         ]);
     }
 }
-?>
