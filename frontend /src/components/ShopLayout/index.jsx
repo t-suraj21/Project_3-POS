@@ -1,461 +1,416 @@
-import { useState } from "react";
-import { NavLink, useParams, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { NavLink, useParams, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import * as S from "./styles";
 
-/* ─── helper: derive page title from pathname ─── */
-const getPageTitle = (pathname) => {
-  if (pathname.includes("/dashboard"))    return "Dashboard";
-  if (pathname.includes("/add-product"))  return "Add Product";
-  if (pathname.includes("/edit-product")) return "Edit Product";
-  if (pathname.includes("/products"))     return "Products";
-  if (pathname.includes("/categories"))   return "Categories";
-  if (pathname.includes("/sub-categories")) return "Sub-Categories";
-  if (pathname.includes("/accounts"))     return "Account Management";
-  if (pathname.includes("/sales"))         return "New Sale";
-  if (pathname.includes("/orders"))        return "Orders";
-  if (pathname.includes("/reports"))       return "Reports";
-  if (pathname.includes("/settings"))      return "Settings";
-  return "POS";
+// ─── Page metadata map ────────────────────────────────────────────
+const PAGE_META = {
+  dashboard:        { title: "Dashboard",         icon: "🏠" },
+  "add-product":    { title: "Add Product",        icon: "📦" },
+  "edit-product":   { title: "Edit Product",       icon: "📦" },
+  products:         { title: "Products",           icon: "📦" },
+  categories:       { title: "Categories",         icon: "🗂️" },
+  "sub-categories": { title: "Sub-Categories",     icon: "🗂️" },
+  accounts:         { title: "Account Management", icon: "💳" },
+  billing:          { title: "Billing",            icon: "💳" },
+  sales:            { title: "New Sale",           icon: "🛒" },
+  orders:           { title: "Orders",             icon: "🧾" },
+  reports:          { title: "Reports",            icon: "📊" },
+  settings:         { title: "Settings",           icon: "⚙️" },
 };
 
+const getPageMeta = (pathname) => {
+  for (const [key, val] of Object.entries(PAGE_META)) {
+    if (pathname.includes(`/${key}`)) return val;
+  }
+  return { title: "POS", icon: "🛒" };
+};
+
+const getGreeting = () => {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+};
+
+// ─── Dynamic nav style factories (depend on `collapsed` state) ────
+const makeNavLinkStyle = (isActive, collapsed) => ({
+  position: "relative",
+  display: "flex",
+  alignItems: "center",
+  gap: collapsed ? 0 : "0.72rem",
+  justifyContent: collapsed ? "center" : "flex-start",
+  padding: collapsed ? "0.72rem 0" : "0.65rem 0.9rem",
+  borderRadius: "12px",
+  color: isActive ? "#fff" : "rgba(255,255,255,0.58)",
+  textDecoration: "none",
+  fontSize: "0.875rem",
+  fontWeight: isActive ? 700 : 500,
+  background: isActive
+    ? "linear-gradient(135deg, rgba(99,102,241,0.48), rgba(139,92,246,0.32))"
+    : "transparent",
+  boxShadow: isActive
+    ? "inset 0 0 0 1px rgba(255,255,255,0.1), 0 2px 10px rgba(99,102,241,0.22)"
+    : "none",
+  cursor: "pointer",
+  overflow: "hidden",
+});
+
+const makeGroupBtnStyle = (isOpen, collapsed) => ({
+  ...makeNavLinkStyle(false, collapsed),
+  width: "100%",
+  border: "none",
+  background: isOpen ? "rgba(255,255,255,0.07)" : "transparent",
+  color: isOpen ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.58)",
+});
+
+// ─── Small reusable sub-components ───────────────────────────────
+const ActiveBar = () => <span style={S.activeBar} />;
+
+const SubDot = () => (
+  <span style={{ width: 5, height: 5, borderRadius: "50%", background: "currentColor", opacity: 0.65, flexShrink: 0 }} />
+);
+
+const SubMenu = ({ open, children }) => (
+  <div className={`sl-submenu-wrap ${open ? "open" : "closed"}`}>{children}</div>
+);
+
+const SubItems = ({ children }) => (
+  <div style={S.subMenuInner}>{children}</div>
+);
+
+// ─── Main layout component ────────────────────────────────────────
 const ShopLayout = ({ children }) => {
   const { id }           = useParams();
   const { user, logout } = useAuth();
   const { pathname }     = useLocation();
+  const navigate         = useNavigate();
   const base             = `/shop/${id}`;
 
-  const productsOpen   = pathname.includes("/products") || pathname.includes("/add-product") || pathname.includes("/edit-product");
-  const categoriesOpen = pathname.includes("/categories") || pathname.includes("/sub-categories");
-  const accountsOpen   = pathname.includes("/accounts");
-  const ordersOpen     = pathname.includes("/orders") || pathname.includes("/orders/pending");
-  const settingsOpen   = pathname.includes("/settings");
+  // Sidebar group open/close — seeded from current route
+  const [ordOpen,  setOrdOpen]  = useState(pathname.includes("/orders"));
+  const [prodOpen, setProdOpen] = useState(
+    pathname.includes("/products") || pathname.includes("/add-product") || pathname.includes("/edit-product")
+  );
+  const [catOpen,  setCatOpen]  = useState(
+    pathname.includes("/categories") || pathname.includes("/sub-categories")
+  );
+  const [acctOpen, setAcctOpen] = useState(pathname.includes("/accounts"));
 
-  const [prodOpen, setProdOpen] = useState(productsOpen);
-  const [catOpen, setCatOpen]   = useState(categoriesOpen);
-  const [acctOpen, setAcctOpen] = useState(accountsOpen);
-  const [ordOpen,  setOrdOpen]  = useState(ordersOpen);
+  const [collapsed,  setCollapsed]  = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  const pageTitle = getPageTitle(pathname);
+  useEffect(() => { S.injectGlobalStyles(); }, []);
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-  return (
-    <div style={s.shell}>
-      {/* ══ Sidebar ══════════════════════════════════════════════════ */}
-      <aside style={s.sidebar}>
+  const meta        = getPageMeta(pathname);
+  const greeting    = getGreeting();
+  const userInitial = (user?.name ?? "U")[0].toUpperCase();
+  const dateStr     = new Date().toLocaleDateString("en-IN", {
+    weekday: "short", day: "numeric", month: "short",
+  });
 
-        {/* Brand */}
-        <div style={s.brand}>
-          <div style={s.brandLogoWrap}>
-            <span style={{ fontSize: "1.3rem", lineHeight: 1 }}>🛒</span>
+  // Bind factories to current collapsed state
+  const navStyle   = (isActive) => makeNavLinkStyle(isActive, collapsed);
+  const groupStyle = (isOpen)   => makeGroupBtnStyle(isOpen, collapsed);
+
+  const NavIcon = ({ emoji }) => (
+    <span style={{ fontSize: "1.12rem", flexShrink: 0, lineHeight: 1, width: collapsed ? "auto" : 22, textAlign: "center" }}>
+      {emoji}
+    </span>
+  );
+
+  // ── Sidebar content (shared between desktop + mobile drawer) ──
+  const SidebarInner = () => (
+    <>
+      {/* Brand row */}
+      <div style={{
+        display: "flex", alignItems: "center", flexShrink: 0,
+        justifyContent: collapsed ? "center" : "space-between",
+        gap: collapsed ? 0 : "0.75rem",
+        padding: collapsed ? "1.25rem 0" : "1.2rem 0.9rem 1.2rem 1.2rem",
+        borderBottom: "1px solid rgba(255,255,255,0.07)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <div style={S.brandLogoBox}>
+            <span style={{ fontSize: "1.25rem", lineHeight: 1 }}>🛒</span>
           </div>
-          <div>
-            <div style={s.brandText}>ShopPOS</div>
-            <div style={s.brandSub}>Admin Panel</div>
-          </div>
-        </div>
-
-        {/* Nav label */}
-        <p style={s.navSection}>MAIN MENU</p>
-
-        <nav style={s.nav}>
-          {/* 1 — Dashboard */}
-          <NavLink
-            to={`${base}/dashboard`}
-            style={({ isActive }) => ({ ...s.navLink, ...(isActive ? s.navLinkActive : {}) })}
-          >
-            {({ isActive }) => (
-              <>
-                {isActive && <span style={s.activeBar} />}
-                <span style={s.navIcon}>🏠</span>
-                <span>Dashboard</span>
-              </>
-            )}
-          </NavLink>
-
-          {/* 2 — New Sale */}
-          <NavLink
-            to={`${base}/sales`}
-            style={({ isActive }) => ({ ...s.navLink, ...(isActive ? s.navLinkActive : {}) })}
-          >
-            {({ isActive }) => (
-              <>
-                {isActive && <span style={s.activeBar} />}
-                <span style={s.navIcon}>🛒</span>
-                <span>New Sale</span>
-              </>
-            )}
-          </NavLink>
-
-          {/* 3 — Orders */}
-          <div>
-            <button
-              style={{ ...s.navLink, ...s.navBtn, ...(ordOpen ? s.navGroupOpen : {}) }}
-              onClick={() => setOrdOpen((v) => !v)}
-            >
-              <span style={s.navIcon}>🧾</span>
-              <span style={{ flex: 1, textAlign: "left" }}>Orders</span>
-              <span style={s.chevron}>{ordOpen ? "▾" : "▸"}</span>
-            </button>
-            {ordOpen && (
-              <div style={s.subMenu}>
-                <NavLink to={`${base}/orders`} end style={({ isActive }) => ({ ...s.subLink, ...(isActive ? s.subLinkActive : {}) })}>
-                  <span style={s.subDot} /> All
-                </NavLink>
-                <NavLink to={`${base}/orders/completed`} end style={({ isActive }) => ({ ...s.subLink, ...(isActive ? s.subLinkActive : {}) })}>
-                  <span style={s.subDot} /> Completed
-                </NavLink>
-                <NavLink to={`${base}/orders/pending`} end style={({ isActive }) => ({ ...s.subLink, ...(isActive ? s.subLinkActive : {}) })}>
-                  <span style={s.subDot} /> Pending / Balance
-                </NavLink>
-                <NavLink to={`${base}/orders/refunded`} end style={({ isActive }) => ({ ...s.subLink, ...(isActive ? s.subLinkActive : {}) })}>
-                  <span style={s.subDot} /> Refunded
-                </NavLink>
-              </div>
-            )}
-          </div>
-
-          {/* 4 — Products */}
-          <div>
-            <button
-              style={{ ...s.navLink, ...s.navBtn, ...(prodOpen ? s.navGroupOpen : {}) }}
-              onClick={() => setProdOpen((v) => !v)}
-            >
-              <span style={s.navIcon}>📦</span>
-              <span style={{ flex: 1, textAlign: "left" }}>Products</span>
-              <span style={s.chevron}>{prodOpen ? "▾" : "▸"}</span>
-            </button>
-            {prodOpen && (
-              <div style={s.subMenu}>
-                <NavLink to={`${base}/add-product`} style={({ isActive }) => ({ ...s.subLink, ...(isActive ? s.subLinkActive : {}) })}>
-                  <span style={s.subDot} /> Add New
-                </NavLink>
-                <NavLink to={`${base}/products`} end style={({ isActive }) => ({ ...s.subLink, ...(isActive ? s.subLinkActive : {}) })}>
-                  <span style={s.subDot} /> All Products
-                </NavLink>
-              </div>
-            )}
-          </div>
-
-          {/* 5 — Categories */}
-          <div>
-            <button
-              style={{ ...s.navLink, ...s.navBtn, ...(catOpen ? s.navGroupOpen : {}) }}
-              onClick={() => setCatOpen((v) => !v)}
-            >
-              <span style={s.navIcon}>🗂️</span>
-              <span style={{ flex: 1, textAlign: "left" }}>Categories</span>
-              <span style={s.chevron}>{catOpen ? "▾" : "▸"}</span>
-            </button>
-            {catOpen && (
-              <div style={s.subMenu}>
-                <NavLink to={`${base}/categories`} end style={({ isActive }) => ({ ...s.subLink, ...(isActive ? s.subLinkActive : {}) })}>
-                  <span style={s.subDot} /> Categories
-                </NavLink>
-                <NavLink to={`${base}/sub-categories`} end style={({ isActive }) => ({ ...s.subLink, ...(isActive ? s.subLinkActive : {}) })}>
-                  <span style={s.subDot} /> Sub-Categories
-                </NavLink>
-              </div>
-            )}
-          </div>
-
-          {/* 6 — Account Management */}
-          <div>
-            <button
-              style={{ ...s.navLink, ...s.navBtn, ...(acctOpen ? s.navGroupOpen : {}) }}
-              onClick={() => setAcctOpen((v) => !v)}
-            >
-              <span style={s.navIcon}>💳</span>
-              <span style={{ flex: 1, textAlign: "left" }}>Accounts</span>
-              <span style={s.chevron}>{acctOpen ? "▾" : "▸"}</span>
-            </button>
-            {acctOpen && (
-              <div style={s.subMenu}>
-                <NavLink to={`${base}/accounts`} end style={({ isActive }) => ({ ...s.subLink, ...(isActive ? s.subLinkActive : {}) })}>
-                  <span style={s.subDot} /> Customers
-                </NavLink>
-              </div>
-            )}
-          </div>
-
-          {/* 7 — Reports */}
-          <NavLink
-            to={`${base}/reports`}
-            style={({ isActive }) => ({ ...s.navLink, ...(isActive ? s.navLinkActive : {}) })}
-          >
-            {({ isActive }) => (
-              <>
-                {isActive && <span style={s.activeBar} />}
-                <span style={s.navIcon}>📊</span>
-                <span>Reports</span>
-              </>
-            )}
-          </NavLink>
-
-          {/* 8 — Settings */}
-          <NavLink
-            to={`${base}/settings`}
-            style={({ isActive }) => ({ ...s.navLink, ...(isActive ? s.navLinkActive : {}) })}
-          >
-            {({ isActive }) => (
-              <>
-                {isActive && <span style={s.activeBar} />}
-                <span style={s.navIcon}>⚙️</span>
-                <span>Settings</span>
-              </>
-            )}
-          </NavLink>
-
-        </nav>
-
-        {/* Footer */}
-        <div style={s.sidebarFooter}>
-          <div style={s.userCard}>
-            <div style={s.userAvatar}>{(user?.name ?? "U")[0].toUpperCase()}</div>
-            <div style={{ minWidth: 0 }}>
-              <p style={s.userName}>{user?.name}</p>
-              <p style={s.userRole}>Shop Owner</p>
+          {!collapsed && (
+            <div>
+              <div style={S.brandTitle}>ShopPOS</div>
+              <div style={S.brandSubtitle}>Admin Panel</div>
             </div>
-          </div>
-          <button style={s.logoutBtn} onClick={logout}>⎋ Logout</button>
+          )}
         </div>
+        {!mobileOpen && (
+          <button
+            className="sl-collapse-btn"
+            style={S.collapseBtn}
+            onClick={() => setCollapsed(v => !v)}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? "▶" : "◀"}
+          </button>
+        )}
+      </div>
+
+      {/* Section label */}
+      {!collapsed
+        ? <p style={S.navSectionLabel}>Main Menu</p>
+        : <div style={{ height: "0.7rem" }} />
+      }
+
+      {/* Navigation links */}
+      <nav
+        className="sl-nav"
+        style={{
+          flex: 1, overflowY: "auto",
+          padding: collapsed ? "0 0.5rem 1rem" : "0.15rem 0.8rem 1rem",
+          display: "flex", flexDirection: "column", gap: "0.16rem",
+        }}
+      >
+        {/* Dashboard */}
+        <NavLink
+          to={`${base}/dashboard`}
+          className="sl-nav-link sl-tip"
+          data-tip="Dashboard"
+          style={({ isActive }) => navStyle(isActive)}
+        >
+          {({ isActive }) => (
+            <>{isActive && <ActiveBar />}<NavIcon emoji="🏠" />{!collapsed && <span>Dashboard</span>}</>
+          )}
+        </NavLink>
+
+        {/* New Sale */}
+        <NavLink
+          to={`${base}/sales`}
+          className="sl-nav-link sl-tip"
+          data-tip="New Sale"
+          style={({ isActive }) => navStyle(isActive)}
+        >
+          {({ isActive }) => (
+            <>{isActive && <ActiveBar />}<NavIcon emoji="🛒" />{!collapsed && <span>New Sale</span>}</>
+          )}
+        </NavLink>
+
+        {/* Orders group */}
+        <div className={collapsed ? "sl-tip" : ""} data-tip="Orders">
+          <button className="sl-nav-link" style={groupStyle(ordOpen)} onClick={() => !collapsed && setOrdOpen(v => !v)}>
+            <NavIcon emoji="🧾" />
+            {!collapsed && (
+              <>
+                <span style={{ flex: 1, textAlign: "left" }}>Orders</span>
+                <span className={`sl-chevron ${ordOpen ? "open" : ""}`}>▶</span>
+              </>
+            )}
+          </button>
+          {!collapsed && (
+            <SubMenu open={ordOpen}>
+              <SubItems>
+                <NavLink end to={`${base}/orders`}           className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>All Orders</span></NavLink>
+                <NavLink end to={`${base}/orders/completed`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Completed</span></NavLink>
+                <NavLink end to={`${base}/orders/pending`}   className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Pending / Balance</span></NavLink>
+                <NavLink end to={`${base}/orders/refunded`}  className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Refunded</span></NavLink>
+              </SubItems>
+            </SubMenu>
+          )}
+        </div>
+
+        {/* Products group */}
+        <div className={collapsed ? "sl-tip" : ""} data-tip="Products">
+          <button className="sl-nav-link" style={groupStyle(prodOpen)} onClick={() => !collapsed && setProdOpen(v => !v)}>
+            <NavIcon emoji="📦" />
+            {!collapsed && (
+              <>
+                <span style={{ flex: 1, textAlign: "left" }}>Products</span>
+                <span className={`sl-chevron ${prodOpen ? "open" : ""}`}>▶</span>
+              </>
+            )}
+          </button>
+          {!collapsed && (
+            <SubMenu open={prodOpen}>
+              <SubItems>
+                <NavLink to={`${base}/add-product`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Add New</span></NavLink>
+                <NavLink end to={`${base}/products`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>All Products</span></NavLink>
+              </SubItems>
+            </SubMenu>
+          )}
+        </div>
+
+        {/* Categories group */}
+        <div className={collapsed ? "sl-tip" : ""} data-tip="Categories">
+          <button className="sl-nav-link" style={groupStyle(catOpen)} onClick={() => !collapsed && setCatOpen(v => !v)}>
+            <NavIcon emoji="🗂️" />
+            {!collapsed && (
+              <>
+                <span style={{ flex: 1, textAlign: "left" }}>Categories</span>
+                <span className={`sl-chevron ${catOpen ? "open" : ""}`}>▶</span>
+              </>
+            )}
+          </button>
+          {!collapsed && (
+            <SubMenu open={catOpen}>
+              <SubItems>
+                <NavLink end to={`${base}/categories`}     className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Categories</span></NavLink>
+                <NavLink end to={`${base}/sub-categories`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Sub-Categories</span></NavLink>
+              </SubItems>
+            </SubMenu>
+          )}
+        </div>
+
+        {/* Accounts group */}
+        <div className={collapsed ? "sl-tip" : ""} data-tip="Accounts">
+          <button className="sl-nav-link" style={groupStyle(acctOpen)} onClick={() => !collapsed && setAcctOpen(v => !v)}>
+            <NavIcon emoji="💳" />
+            {!collapsed && (
+              <>
+                <span style={{ flex: 1, textAlign: "left" }}>Accounts</span>
+                <span className={`sl-chevron ${acctOpen ? "open" : ""}`}>▶</span>
+              </>
+            )}
+          </button>
+          {!collapsed && (
+            <SubMenu open={acctOpen}>
+              <SubItems>
+                <NavLink end to={`${base}/accounts`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Customers</span></NavLink>
+              </SubItems>
+            </SubMenu>
+          )}
+        </div>
+
+        {/* Reports */}
+        <NavLink
+          to={`${base}/reports`}
+          className="sl-nav-link sl-tip"
+          data-tip="Reports"
+          style={({ isActive }) => navStyle(isActive)}
+        >
+          {({ isActive }) => (
+            <>{isActive && <ActiveBar />}<NavIcon emoji="📊" />{!collapsed && <span>Reports</span>}</>
+          )}
+        </NavLink>
+
+        {/* Settings */}
+        <NavLink
+          to={`${base}/settings`}
+          className="sl-nav-link sl-tip"
+          data-tip="Settings"
+          style={({ isActive }) => navStyle(isActive)}
+        >
+          {({ isActive }) => (
+            <>{isActive && <ActiveBar />}<NavIcon emoji="⚙️" />{!collapsed && <span>Settings</span>}</>
+          )}
+        </NavLink>
+      </nav>
+
+      {/* Footer: user info + logout */}
+      <div style={{
+        padding: collapsed ? "0.85rem 0.5rem" : "0.85rem 1rem",
+        borderTop: "1px solid rgba(255,255,255,0.07)",
+        display: "flex", flexDirection: "column", gap: "0.55rem", flexShrink: 0,
+      }}>
+        {/* User card */}
+        <div style={{
+          display: "flex", alignItems: "center",
+          gap: "0.65rem", justifyContent: collapsed ? "center" : "flex-start",
+          padding: collapsed ? "0.5rem 0" : "0.5rem 0.7rem",
+          borderRadius: 12,
+          background: "rgba(255,255,255,0.05)",
+          border: "1px solid rgba(255,255,255,0.07)",
+        }}>
+          <div style={{ position: "relative", flexShrink: 0 }}>
+            <div style={S.userAvatar}>{userInitial}</div>
+            <span className="sl-online-dot" style={S.onlineDot} />
+          </div>
+          {!collapsed && (
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <p style={S.userNameText}>{user?.name}</p>
+              <p style={S.userRoleText}>Shop Owner · Online</p>
+            </div>
+          )}
+        </div>
+
+        {/* Logout button */}
+        <button
+          className={`sl-logout${collapsed ? " sl-tip" : ""}`}
+          data-tip="Logout"
+          onClick={logout}
+          style={{
+            ...S.logoutBtn,
+            padding: collapsed ? "0.55rem 0" : "0.5rem 1rem",
+            fontSize: collapsed ? "1.05rem" : "0.82rem",
+          }}
+        >
+          <span>⎋</span>
+          {!collapsed && <span>Logout</span>}
+        </button>
+      </div>
+    </>
+  );
+
+  // ── Render shell ─────────────────────────────────────────────────
+  return (
+    <div style={S.shell}>
+
+      {/* Mobile overlay backdrop */}
+      {mobileOpen && <div style={S.mobileBackdrop} onClick={() => setMobileOpen(false)} />}
+
+      {/* Desktop sticky sidebar */}
+      <aside style={{ ...S.sidebar, width: collapsed ? 68 : 260 }}>
+        <SidebarInner />
       </aside>
 
-      {/* ══ Main area ═══════════════════════════════════════════════ */}
-      <div style={s.mainWrap}>
-        {/* Top header bar */}
-        <header style={s.topBar}>
-          <div>
-            <span style={s.topBarTitle}>{pageTitle}</span>
+      {/* Mobile slide-in drawer */}
+      <aside style={{ ...S.sidebarMobileDrawer, left: mobileOpen ? 0 : -280 }}>
+        <SidebarInner />
+      </aside>
+
+      {/* Right panel: top bar + page content */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" }}>
+
+        {/* Top bar */}
+        <header style={S.topBar}>
+
+          {/* Left side: hamburger + page icon + title */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.85rem", minWidth: 0 }}>
+            <button style={S.hamburgerBtn} onClick={() => setMobileOpen(v => !v)} title="Toggle menu">☰</button>
+            <div style={S.pageIconBadge}>{meta.icon}</div>
+            <div style={{ minWidth: 0 }}>
+              <div style={S.pageTitleText}>{meta.title}</div>
+              <div style={S.greetingText}>{greeting}, {user?.name?.split(" ")[0] || "there"} 👋</div>
+            </div>
           </div>
-          <div style={s.topBarRight}>
-            <div style={s.topBarAvatar}>{(user?.name ?? "U")[0].toUpperCase()}</div>
-            <span style={s.topBarName}>{user?.name}</span>
+
+          {/* Right side: date + quick-sale + user chip */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.7rem", flexShrink: 0 }}>
+            <div style={S.dateBadge}>📅 {dateStr}</div>
+
+            {!pathname.includes("/sales") && !pathname.includes("/billing") && (
+              <button
+                className="sl-topbar-sale"
+                style={S.newSaleBtn}
+                onClick={() => navigate(`${base}/sales`)}
+              >
+                🛒 New Sale
+              </button>
+            )}
+
+            <div style={S.topBarDivider} />
+
+            <div style={S.userChip}>
+              <div style={S.userChipAvatar}>{userInitial}</div>
+              <span style={S.userChipName}>{user?.name}</span>
+            </div>
           </div>
         </header>
 
         {/* Page content */}
-        <main style={s.main}>{children}</main>
+        <main className="sl-main" style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
+          {children}
+        </main>
       </div>
     </div>
   );
-};
-
-const s = {
-  shell: {
-    display: "flex",
-    minHeight: "100vh",
-    fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
-    backgroundColor: "#f1f5f9",
-  },
-
-  /* ── Sidebar ── */
-  sidebar: {
-    width: "252px",
-    minHeight: "100vh",
-    background: "linear-gradient(160deg, #0f0c29 0%, #302b63 60%, #24243e 100%)",
-    display: "flex",
-    flexDirection: "column",
-    position: "sticky",
-    top: 0,
-    height: "100vh",
-    flexShrink: 0,
-    boxShadow: "2px 0 20px rgba(0,0,0,0.25)",
-    zIndex: 100,
-  },
-  brand: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.75rem",
-    padding: "1.4rem 1.25rem 1.2rem",
-    borderBottom: "1px solid rgba(255,255,255,0.07)",
-  },
-  brandLogoWrap: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "10px",
-    background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-    boxShadow: "0 4px 12px rgba(99,102,241,0.4)",
-  },
-  brandText: { color: "#fff", fontWeight: 800, fontSize: "1.05rem", lineHeight: 1.2 },
-  brandSub:  { color: "rgba(255,255,255,0.4)", fontSize: "0.68rem", fontWeight: 500, marginTop: "2px" },
-
-  navSection: {
-    fontSize: "0.62rem",
-    fontWeight: 800,
-    letterSpacing: "0.12em",
-    color: "rgba(255,255,255,0.3)",
-    padding: "1.1rem 1.25rem 0.4rem",
-    margin: 0,
-    textTransform: "uppercase",
-  },
-  nav: {
-    flex: 1,
-    padding: "0.3rem 0.75rem 1rem",
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.15rem",
-    overflowY: "auto",
-  },
-  navLink: {
-    position: "relative",
-    display: "flex",
-    alignItems: "center",
-    gap: "0.65rem",
-    padding: "0.62rem 0.85rem",
-    borderRadius: "10px",
-    color: "rgba(255,255,255,0.58)",
-    textDecoration: "none",
-    fontSize: "0.875rem",
-    fontWeight: 500,
-    transition: "all 0.18s ease",
-  },
-  navLinkActive: {
-    background: "rgba(255,255,255,0.12)",
-    color: "#fff",
-    fontWeight: 600,
-    boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08)",
-  },
-  navBtn: {
-    width: "100%",
-    border: "none",
-    background: "transparent",
-    cursor: "pointer",
-  },
-  navGroupOpen: {
-    background: "rgba(255,255,255,0.06)",
-    color: "rgba(255,255,255,0.85)",
-  },
-  activeBar: {
-    position: "absolute",
-    left: 0,
-    top: "50%",
-    transform: "translateY(-50%)",
-    width: "3px",
-    height: "60%",
-    borderRadius: "0 3px 3px 0",
-    background: "#818cf8",
-    marginLeft: "-0.85rem",
-  },
-  navIcon:  { fontSize: "1.05rem", width: "22px", flexShrink: 0, textAlign: "center" },
-  chevron:  { fontSize: "0.7rem", opacity: 0.5 },
-
-  subMenu: {
-    marginLeft: "2rem",
-    marginTop: "0.1rem",
-    marginBottom: "0.1rem",
-    paddingLeft: "0.65rem",
-    borderLeft: "1px solid rgba(255,255,255,0.1)",
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.1rem",
-  },
-  subLink: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.5rem",
-    padding: "0.42rem 0.65rem",
-    borderRadius: "8px",
-    color: "rgba(255,255,255,0.48)",
-    textDecoration: "none",
-    fontSize: "0.83rem",
-    fontWeight: 500,
-    transition: "all 0.15s ease",
-  },
-  subLinkActive: {
-    background: "rgba(129,140,248,0.15)",
-    color: "#a5b4fc",
-    fontWeight: 600,
-  },
-  subDot: {
-    width: "5px",
-    height: "5px",
-    borderRadius: "50%",
-    background: "currentColor",
-    opacity: 0.6,
-    flexShrink: 0,
-  },
-
-  sidebarFooter: {
-    padding: "0.9rem 1.1rem",
-    borderTop: "1px solid rgba(255,255,255,0.07)",
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.65rem",
-  },
-  userCard: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.65rem",
-    padding: "0.5rem 0.65rem",
-    borderRadius: "10px",
-    background: "rgba(255,255,255,0.06)",
-  },
-  userAvatar: {
-    width: "34px",
-    height: "34px",
-    borderRadius: "50%",
-    background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "#fff",
-    fontWeight: 700,
-    fontSize: "0.85rem",
-    flexShrink: 0,
-    boxShadow: "0 2px 8px rgba(99,102,241,0.35)",
-  },
-  userName: { color: "#fff", fontWeight: 600, fontSize: "0.82rem", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  userRole: { color: "rgba(255,255,255,0.4)", fontSize: "0.7rem", margin: 0 },
-  logoutBtn: {
-    padding: "0.48rem 1rem",
-    borderRadius: "9px",
-    border: "1px solid rgba(255,255,255,0.15)",
-    background: "rgba(255,255,255,0.05)",
-    color: "rgba(255,255,255,0.6)",
-    cursor: "pointer",
-    fontSize: "0.82rem",
-    fontWeight: 600,
-    textAlign: "center",
-    transition: "all 0.15s",
-  },
-
-  /* ── Main wrap ── */
-  mainWrap: { flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" },
-
-  topBar: {
-    height: "60px",
-    background: "#fff",
-    borderBottom: "1px solid #e2e8f0",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "0 1.75rem",
-    flexShrink: 0,
-    boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
-    position: "sticky",
-    top: 0,
-    zIndex: 50,
-  },
-  topBarTitle: { fontSize: "1rem", fontWeight: 700, color: "#1e293b" },
-  topBarRight: { display: "flex", alignItems: "center", gap: "0.65rem" },
-  topBarAvatar: {
-    width: "32px",
-    height: "32px",
-    borderRadius: "50%",
-    background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "#fff",
-    fontWeight: 700,
-    fontSize: "0.82rem",
-  },
-  topBarName: { fontSize: "0.875rem", fontWeight: 600, color: "#475569" },
-
-  main: { flex: 1, overflowY: "auto", overflowX: "hidden" },
 };
 
 export default ShopLayout;

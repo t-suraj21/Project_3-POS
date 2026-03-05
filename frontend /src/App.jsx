@@ -22,6 +22,7 @@ import SubCategories     from "./pages/shop/SubCategories";
 import AccountManagement from "./pages/shop/AccountManagement";
 import CustomerDetail    from "./pages/shop/CustomerDetail";
 import Sales             from "./pages/shop/Sales";
+import Billing           from "./pages/shop/Billing";
 import Orders            from "./pages/shop/Orders";
 import ShopSettings    from "./pages/shop/ShopSettings";
 import Reports         from "./pages/shop/Reports";
@@ -93,6 +94,7 @@ function App() {
             <Route path="/shop/:id/accounts"                        element={<AccountManagement />} />
             <Route path="/shop/:id/accounts/:customerId"            element={<CustomerDetail />} />
             <Route path="/shop/:id/sales"                           element={<Sales />} />
+            <Route path="/shop/:id/billing"                         element={<Billing />} />
             <Route path="/shop/:id/orders"           element={<Orders filter="all" />} />
             <Route path="/shop/:id/orders/completed" element={<Orders filter="completed" />} />
             <Route path="/shop/:id/orders/pending"   element={<Orders filter="pending" />} />

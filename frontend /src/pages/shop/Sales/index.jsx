@@ -1,23 +1,12 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import useSales from "../../../hooks/useSales";
 import s from "./styles";
 
-/* ── tiny format helpers ────────────────────────────────────────────── */
-const fmt   = (n) => `₹ ${parseFloat(n || 0).toFixed(2)}`;
-const imgSrc = (img) => img ? `/uploads/products/${img.replace("uploads/products/", "")}` : null;
-
-/* ── payment mode config ─────────────────────────────────────────────── */
-const PAY_MODES = [
-  { key: "cash",   label: "Cash"       },
-  { key: "upi",    label: "UPI"        },
-  { key: "card",   label: "Card"       },
-  { key: "credit", label: "Credit"     },
-  { key: "online", label: "🔒 Online"  },  // Razorpay gateway
-];
-
-/* ── dollar-style formatter for billing section ───────────────── */
+/* ── format helpers ─────────────────────────────────────────────── */
+const fmt  = (n) => `₹ ${parseFloat(n || 0).toFixed(2)}`;
 const fmt2 = (n) => `${parseFloat(n || 0).toFixed(2)} ₹`;
+const imgSrc = (img) => img ? `/uploads/products/${img.replace("uploads/products/", "")}` : null;
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Product Card
@@ -69,152 +58,7 @@ const ProductCard = ({ product, onAdd }) => {
   );
 };
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Receipt Modal
-────────────────────────────────────────────────────────────────────────────── */
-const ReceiptModal = ({ receipt, shopId, onNewSale }) => {
-  const navigate = useNavigate();
-  if (!receipt) return null;
-
-  const handleViewOrders = () => {
-    onNewSale();
-    navigate(`/shop/${shopId}/orders`);
-  };
-
-  return (
-    <div style={s.overlay} onClick={onNewSale}>
-      <div style={s.receiptCard} onClick={e => e.stopPropagation()}>
-        <div style={s.receiptHeader}>
-          <div style={s.receiptIcon}>
-            {receipt.saleStatus === "paid" ? "✅" : receipt.saleStatus === "credit" ? "📋" : "⏳"}
-          </div>
-          <h2 style={s.receiptTitle}>
-            {receipt.saleStatus === "paid" ? "Sale Complete!" : receipt.saleStatus === "credit" ? "Credit Sale!" : "Partial Payment!"}
-          </h2>
-          <p style={s.receiptBill}>Bill No: <strong>{receipt.bill_number}</strong></p>
-        </div>
-
-        <div style={{ fontSize: "0.8rem", color: "#6b7280", textAlign: "center", marginBottom: "0.75rem" }}>
-          {new Date().toLocaleString()}
-        </div>
-
-        {/* Customer info block */}
-        {receipt.customerName && (
-          <div style={{
-            background: "#f0f4ff",
-            border: "1px solid #c7d7f9",
-            borderRadius: "8px",
-            padding: "0.55rem 0.8rem",
-            marginBottom: "0.75rem",
-            fontSize: "0.8rem",
-            color: "#1e3a8a",
-            display: "flex",
-            flexDirection: "column",
-            gap: "0.2rem",
-          }}>
-            <div>👤 <strong>{receipt.customerName}</strong></div>
-            {receipt.customerPhone && <div>📞 {receipt.customerPhone}</div>}
-            {receipt.customerAddress && <div>📍 {receipt.customerAddress}</div>}
-          </div>
-        )}
-
-        {/* Items */}
-        <div>
-          {receipt.cart.map((item, i) => (
-            <div key={i} style={s.receiptItemRow}>
-              <span>{item.name} × {item.qty}</span>
-              <span style={{ fontWeight: 600 }}>{fmt(item.sell_price * item.qty)}</span>
-            </div>
-          ))}
-        </div>
-
-        <div style={s.receiptDivider} />
-
-        <div style={s.receiptTotalRow}>
-          <span>Total</span>
-          <span>{fmt(receipt.grandTotal)}</span>
-        </div>
-
-        <div style={{ ...s.receiptTotalRow, fontWeight: 500, color: "#16a34a" }}>
-          <span>Paid</span>
-          <span>{fmt(receipt.paidAmt)}</span>
-        </div>
-
-        {receipt.balanceDue > 0 && (
-          <div style={{ ...s.receiptTotalRow, fontWeight: 700, color: "#dc2626" }}>
-            <span>Balance Due</span>
-            <span>{fmt(receipt.balanceDue)}</span>
-          </div>
-        )}
-
-        {receipt.paymentMode === "cash" && receipt.change > 0 && (
-          <div style={s.receiptChangeRow}>
-            <span>Change</span>
-            <span>{fmt(receipt.change)}</span>
-          </div>
-        )}
-
-        {receipt.paymentMode === "online" && receipt.paymentId && (
-          <div style={{
-            background: "#f0fdf4", border: "1px solid #86efac",
-            borderRadius: "7px", padding: "0.45rem 0.8rem",
-            fontSize: "0.78rem", color: "#166534", textAlign: "center",
-            marginBottom: "0.5rem",
-          }}>
-            💳 Razorpay ID: <strong>{receipt.paymentId}</strong>
-          </div>
-        )}
-
-        {/* Status + payment mode badges */}
-        <div style={{ marginTop: "0.75rem", textAlign: "center", display: "flex", justifyContent: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-          <span style={{
-            display: "inline-block",
-            padding: "0.25rem 0.85rem",
-            borderRadius: "9999px",
-            fontSize: "0.75rem",
-            fontWeight: 700,
-            background: receipt.saleStatus === "paid" ? "#f0fdf4" : "#fef2f2",
-            color:      receipt.saleStatus === "paid" ? "#16a34a" : "#dc2626",
-          }}>
-            {receipt.saleStatus === "paid" ? "✓ PAID" : receipt.saleStatus === "credit" ? "CREDIT — UNPAID" : "⏳ PARTIAL — PENDING"}
-          </span>
-          <span style={{
-            display: "inline-block",
-            padding: "0.25rem 0.75rem",
-            borderRadius: "9999px",
-            fontSize: "0.75rem",
-            fontWeight: 600,
-            background: "#f4f7fb",
-            color:      "#6b7280",
-          }}>
-            {receipt.paymentMode.toUpperCase()}
-          </span>
-        </div>
-
-        {receipt.balanceDue > 0 && (
-          <div style={{
-            marginTop: "0.6rem",
-            background: "#fef2f2",
-            border: "1px solid #fecaca",
-            borderRadius: "7px",
-            padding: "0.45rem 0.8rem",
-            fontSize: "0.78rem",
-            color: "#991b1b",
-            textAlign: "center",
-          }}>
-            ⚠ {fmt(receipt.balanceDue)} pending — visible in Orders → Pending &amp; Accounts page
-          </div>
-        )}
-
-        <div style={s.receiptActions}>
-          <button style={s.printBtn} onClick={() => window.print()}>🖨️ Print</button>
-          <button style={s.viewOrdersBtn} onClick={handleViewOrders}>📋 View Orders</button>
-          <button style={s.newSaleBtn} onClick={onNewSale}>+ New Sale</button>
-        </div>
-      </div>
-    </div>
-  );
-};
+/* Receipt modal lives on the Billing page — removed from Sales */
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Main Sales Page
@@ -233,16 +77,9 @@ const Sales = () => {
     customerAddress, setCustomerAddress,
     couponDiscount, setCouponDiscount,
     extraDiscount, setExtraDiscount,
-    paymentMode, setPaymentMode,
-    paidAmount, setPaidAmount,
     note, setNote,
-    upiRef, setUpiRef,
-    cardRef, setCardRef,
-    subtotal, productDiscount, taxTotal, grandTotal, change,
-    submitting, checkoutErr, handleCheckout,
-    handleOnlineCheckout, rzProcessing,
-    handlePaymentModeChange,
-    receipt, setReceipt,
+    subtotal, productDiscount, taxTotal, grandTotal,
+    billingErr, proceedToBilling,
   } = useSales();
 
   // Auto-fill typed fields when a returning customer is selected from dropdown
@@ -264,8 +101,7 @@ const Sales = () => {
   const totalItems = cart.reduce((acc, i) => acc + i.qty, 0);
 
   return (
-    <>
-      <div style={s.page}>
+    <div style={s.page}>
 
         {/* ════════════════════════════════════════════════════════════
             LEFT — Product Panel
@@ -395,7 +231,7 @@ const Sales = () => {
           <div style={s.billingSection}>
 
             {/* Header */}
-            <div style={s.billingHeader}>Billing Section</div>
+            <div style={s.billingHeader}>Order Summary</div>
 
             <div style={s.billingBody}>
 
@@ -446,8 +282,8 @@ const Sales = () => {
                 <input
                   style={{
                     ...s.billingSelect,
-                    borderColor: checkoutErr?.includes("name") ? "#fca5a5" : undefined,
-                    background:  checkoutErr?.includes("name") ? "#fef2f2" : undefined,
+                    borderColor: billingErr?.includes("name") ? "#fca5a5" : undefined,
+                    background:  billingErr?.includes("name") ? "#fef2f2" : undefined,
                   }}
                   type="text"
                   placeholder="Full name *"
@@ -459,8 +295,8 @@ const Sales = () => {
                 <input
                   style={{
                     ...s.billingSelect,
-                    borderColor: checkoutErr?.includes("mobile") ? "#fca5a5" : undefined,
-                    background:  checkoutErr?.includes("mobile") ? "#fef2f2" : undefined,
+                    borderColor: billingErr?.includes("mobile") ? "#fca5a5" : undefined,
+                    background:  billingErr?.includes("mobile") ? "#fef2f2" : undefined,
                   }}
                   type="tel"
                   placeholder="Mobile number *"
@@ -472,8 +308,8 @@ const Sales = () => {
                 <input
                   style={{
                     ...s.billingSelect,
-                    borderColor: checkoutErr?.includes("address") ? "#fca5a5" : undefined,
-                    background:  checkoutErr?.includes("address") ? "#fef2f2" : undefined,
+                    borderColor: billingErr?.includes("address") ? "#fca5a5" : undefined,
+                    background:  billingErr?.includes("address") ? "#fef2f2" : undefined,
                   }}
                   type="text"
                   placeholder="Address *"
@@ -536,217 +372,45 @@ const Sales = () => {
                 </div>
               </div>
 
-              {/* Payment Method */}
-              <div style={s.billingFieldLabel}>Payment Method</div>
-              <div style={s.payBtnRow}>
-                {PAY_MODES.map(m => (
-                  <button
-                    key={m.key}
-                    style={s.payBtn(paymentMode === m.key)}
-                    onClick={() => handlePaymentModeChange(m.key)}
-                  >
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* ─────── MODE-SPECIFIC PANELS ─────────────────────────── */}
-
-              {/* CASH: partial payment tip */}
-              {paymentMode === "cash" && (
-                <div style={{ fontSize: "0.72rem", color: "#6b7280", background: "#f9fafb", borderRadius: "8px", padding: "0.5rem 0.75rem", border: "1px solid #e5e7eb" }}>
-                  💡 Enter less than total for a partial payment — balance is tracked in Accounts.
-                </div>
-              )}
-
-              {/* UPI: app badges + UTR reference input */}
-              {paymentMode === "upi" && (
-                <div style={{ background: "#f0fdf4", border: "1.5px solid #86efac", borderRadius: "10px", padding: "0.75rem 0.9rem", display: "flex", flexDirection: "column", gap: "0.55rem" }}>
-                  <div style={{ fontWeight: 700, fontSize: "0.8rem", color: "#15803d" }}>
-                    📱 UPI Payment — Full amount collected automatically
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
-                    {["Google Pay", "PhonePe", "Paytm", "BHIM", "Amazon Pay"].map(app => (
-                      <span key={app} style={{ background: "#dcfce7", color: "#166534", fontSize: "0.7rem", fontWeight: 700, padding: "0.15rem 0.55rem", borderRadius: "999px", border: "1px solid #86efac" }}>{app}</span>
-                    ))}
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
-                    <label style={{ fontSize: "0.74rem", fontWeight: 600, color: "#374151" }}>UTR / Transaction Reference <span style={{ color: "#9ca3af", fontWeight: 400 }}>(optional)</span></label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 123456789012"
-                      value={upiRef}
-                      onChange={e => setUpiRef(e.target.value)}
-                      style={{ padding: "0.5rem 0.75rem", border: "1.5px solid #86efac", borderRadius: "8px", fontSize: "0.85rem", outline: "none", background: "#fff", color: "#111827", letterSpacing: "0.05em" }}
-                    />
-                  </div>
-                  <div style={{ fontSize: "0.68rem", color: "#6b7280" }}>
-                    ✔ Ask customer to scan your UPI QR code. Enter the UTR from their payment screenshot for records.
-                  </div>
-                </div>
-              )}
-
-              {/* CARD: transaction ref + last 4 digits */}
-              {paymentMode === "card" && (
-                <div style={{ background: "#faf5ff", border: "1.5px solid #d8b4fe", borderRadius: "10px", padding: "0.75rem 0.9rem", display: "flex", flexDirection: "column", gap: "0.55rem" }}>
-                  <div style={{ fontWeight: 700, fontSize: "0.8rem", color: "#7e22ce" }}>
-                    💳 Card Payment — Full amount collected via POS terminal
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
-                    {["Visa", "Mastercard", "RuPay", "Amex", "Debit Card", "Credit Card"].map(t => (
-                      <span key={t} style={{ background: "#f3e8ff", color: "#6b21a8", fontSize: "0.7rem", fontWeight: 700, padding: "0.15rem 0.55rem", borderRadius: "999px", border: "1px solid #d8b4fe" }}>{t}</span>
-                    ))}
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
-                    <label style={{ fontSize: "0.74rem", fontWeight: 600, color: "#374151" }}>Transaction Ref / Card Last 4 Digits <span style={{ color: "#9ca3af", fontWeight: 400 }}>(optional)</span></label>
-                    <input
-                      type="text"
-                      placeholder="e.g. TXNREF123 or last 4 digits"
-                      value={cardRef}
-                      onChange={e => setCardRef(e.target.value)}
-                      style={{ padding: "0.5rem 0.75rem", border: "1.5px solid #d8b4fe", borderRadius: "8px", fontSize: "0.85rem", outline: "none", background: "#fff", color: "#111827", letterSpacing: "0.05em" }}
-                    />
-                  </div>
-                  <div style={{ fontSize: "0.68rem", color: "#6b7280" }}>
-                    ✔ Swipe / tap / insert card on your POS terminal. Enter the approval code or last 4 digits for records.
-                  </div>
-                </div>
-              )}
-
-              {/* CREDIT: full credit sale info */}
-              {paymentMode === "credit" && (
-                <div style={{ background: "#fff7ed", border: "1.5px solid #fdba74", borderRadius: "10px", padding: "0.75rem 0.9rem", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-                  <div style={{ fontWeight: 700, fontSize: "0.8rem", color: "#c2410c" }}>
-                    📋 Credit Sale — Customer Owes Full Amount
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fef3c7", border: "1px solid #fde68a", borderRadius: "7px", padding: "0.45rem 0.75rem" }}>
-                    <span style={{ fontSize: "0.8rem", color: "#92400e", fontWeight: 600 }}>Amount to be credited:</span>
-                    <span style={{ fontSize: "1rem", fontWeight: 800, color: "#dc2626" }}>₹ {grandTotal.toFixed(2)}</span>
-                  </div>
-                  <div style={{ fontSize: "0.7rem", color: "#6b7280", lineHeight: 1.5 }}>
-                    ⚠ No cash collected now. Full balance of <strong>₹{grandTotal.toFixed(2)}</strong> will be tracked in
-                    the <strong>Orders → Pending</strong> and <strong>Accounts</strong> sections.
-                  </div>
-                </div>
-              )}
-
-              {/* ONLINE: Razorpay info panel */}
-              {paymentMode === "online" && (
-                <div style={{ background: "#eff6ff", border: "1.5px solid #bfdbfe", borderRadius: "10px", padding: "0.75rem 0.9rem", display: "flex", flexDirection: "column", gap: "0.45rem" }}>
-                  <div style={{ fontWeight: 700, fontSize: "0.8rem", color: "#1d4ed8" }}>
-                    🔒 Secure Online Payment via Razorpay
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
-                    {["Google Pay","PhonePe","Paytm","BHIM UPI","Credit Card","Debit Card","Net Banking","Wallets"].map(m => (
-                      <span key={m} style={{ background: "#dbeafe", color: "#1e40af", padding: "0.15rem 0.5rem", borderRadius: "999px", fontWeight: 600, fontSize: "0.7rem" }}>{m}</span>
-                    ))}
-                  </div>
-                  <div style={{ fontSize: "0.68rem", color: "#6b7280" }}>
-                    Customer pays via the Razorpay popup. Payment is verified automatically before sale is confirmed.
-                  </div>
-                </div>
-              )}
-              {paymentMode !== "online" && (
-              <div style={s.paidRow}>
-                <span style={s.paidLabel}>Paid Amount</span>
-                <input
-                  type="number" min="0"
-                  style={{
-                    ...s.paidInput,
-                    ...(paymentMode === "upi" || paymentMode === "card"
-                      ? { background: "#f3f4f6", color: "#9ca3af", cursor: "not-allowed" }
-                      : {}),
-                  }}
-                  value={paidAmount}
-                  onChange={e => setPaidAmount(e.target.value)}
-                  placeholder={
-                    paymentMode === "credit"  ? "0 (full credit)" :
-                    paymentMode === "upi" || paymentMode === "card" ? "Auto - full amount" :
-                    grandTotal.toFixed(2)
-                  }
-                  disabled={paymentMode === "upi" || paymentMode === "card"}
-                />
-              </div>
-              )}
-
-              {/* Change Amount — only for cash */}
-              {paymentMode === "cash" && (
-              <div style={s.changeRow}>
-                <span style={s.changeLabel}>Change Amount</span>
-                <span style={s.changeVal}>{change.toFixed(2)} ₹</span>
-              </div>
-              )}
-
               {/* Comments */}
-              <div style={s.billingFieldLabel}>Comments</div>
+              <div style={s.billingFieldLabel}>Comments (Optional)</div>
               <textarea
                 style={s.commentsArea}
                 value={note}
                 onChange={e => setNote(e.target.value)}
-                placeholder="Add a note…"
-                rows={3}
+                placeholder="Add a note about this order…"
+                rows={2}
               />
 
               {/* Error */}
-              {checkoutErr && <div style={s.errorMsg}>⛔ {checkoutErr}</div>}
+              {billingErr && <div style={s.errorMsg}>⛔ {billingErr}</div>}
 
               {/* Action buttons */}
               <div style={s.actionBtns}>
                 <button style={s.cancelBtn} onClick={clearCart}>
                   <span style={{ color: "#ef4444" }}>✕</span> Cancel
                 </button>
-                <button style={s.holdBtn}>
-                  <span style={{ color: "#f59e0b" }}>⏸</span> Hold
+                <button
+                  style={{
+                    ...s.placeOrderBtn(cart.length === 0),
+                    background: cart.length === 0 ? "#9ca3af" : "linear-gradient(135deg, #4f46e5, #7c3aed)",
+                    flex: 2,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem",
+                    fontSize: "0.9rem",
+                  }}
+                  onClick={proceedToBilling}
+                  disabled={cart.length === 0}
+                >
+                  Proceed to Billing →
                 </button>
-
-                {/* ─ ONLINE: Razorpay button ──────────────────────────── */}
-                {paymentMode === "online" ? (
-                  <button
-                    style={{
-                      ...s.placeOrderBtn(cart.length === 0 || rzProcessing),
-                      background: cart.length === 0 || rzProcessing ? "#9ca3af" : "#1d4ed8",
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem",
-                    }}
-                    onClick={handleOnlineCheckout}
-                    disabled={cart.length === 0 || rzProcessing}
-                  >
-                    {rzProcessing ? (
-                      <>
-                        <span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid #fff", borderTopColor: "transparent", borderRadius: "50%", animation: "spin .7s linear infinite" }} />
-                        Processing…
-                        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-                      </>
-                    ) : (
-                      <>🔒 Pay ₹{grandTotal.toFixed(2)}</>
-                    )}
-                  </button>
-                ) : (
-                  /* ─ OFFLINE: standard Place Order button ────────────── */
-                  <button
-                    style={s.placeOrderBtn(cart.length === 0 || submitting)}
-                    onClick={handleCheckout}
-                    disabled={cart.length === 0 || submitting}
-                  >
-                    {submitting ? "Processing…" : "Place Order"}
-                  </button>
-                )}
               </div>
 
             </div>{/* /billingBody */}
           </div>{/* /billingSection */}
         </div>
-      </div>
-
-      {/* ── Receipt modal ── */}
-      {receipt && (
-        <ReceiptModal
-          receipt={receipt}
-          shopId={shopId}
-          onNewSale={() => setReceipt(null)}
-        />
-      )}
-    </>
+    </div>
   );
 };
 
 export default Sales;
+
