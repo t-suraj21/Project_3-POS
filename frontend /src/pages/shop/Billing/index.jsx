@@ -406,7 +406,7 @@ export default function Billing() {
                     style={{
                       padding: "0.8rem", border: `2px solid ${active ? m.color : C.border}`,
                       borderRadius: 12, background: active ? m.bg : C.card,
-                      cursor: "pointer", transition: "all .15s",
+                      cursor: "pointer",
                       display: "flex", flexDirection: "column", alignItems: "center", gap: "0.25rem",
                       boxShadow: active ? `0 0 0 3px ${m.color}22` : "none",
                     }}
@@ -627,15 +627,10 @@ export default function Billing() {
                   background: rzProcessing ? "#9ca3af" : "#1d4ed8",
                   color: "#fff", fontWeight: 900, fontSize: "1.05rem", cursor: rzProcessing ? "not-allowed" : "pointer",
                   boxShadow: "0 4px 15px rgba(29,78,216,.35)", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem",
-                  transition: "opacity .15s",
                 }}
               >
                 {rzProcessing ? (
-                  <>
-                    <span style={{ width: 18, height: 18, border: "3px solid rgba(255,255,255,.4)", borderTopColor: "#fff", borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />
-                    Processing…
-                    <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-                  </>
+                  <>Processing…</>
                 ) : (
                   <>🔒 Pay {fmt(grandTotal)} via Razorpay</>
                 )}
@@ -649,15 +644,10 @@ export default function Billing() {
                   background: submitting ? "#9ca3af" : `linear-gradient(135deg, ${C.primary}, #7c3aed)`,
                   color: "#fff", fontWeight: 900, fontSize: "1.05rem", cursor: submitting ? "not-allowed" : "pointer",
                   boxShadow: "0 4px 15px rgba(79,70,229,.35)", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem",
-                  transition: "opacity .15s",
                 }}
               >
                 {submitting ? (
-                  <>
-                    <span style={{ width: 18, height: 18, border: "3px solid rgba(255,255,255,.4)", borderTopColor: "#fff", borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />
-                    Processing…
-                    <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-                  </>
+                  <>Processing…</>
                 ) : (
                   <>
                     {activeMode?.icon} Confirm {activeMode?.label} Payment — {

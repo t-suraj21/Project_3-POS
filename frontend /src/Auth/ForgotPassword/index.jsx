@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import useForgotPassword from "./useForgotPassword";
+import useForgotPassword from "../../hooks/useForgotPassword";
 
 /* ── Inject CSS (same design system as Login) ── */
 const CSS = `
@@ -10,7 +10,6 @@ const CSS = `
     border: 1.5px solid #e5e7eb; border-radius: 10px;
     font-size: 0.95rem; font-family: Inter, sans-serif;
     background: #f9fafb; color: #111827;
-    transition: border-color .2s, box-shadow .2s, background .2s;
     outline: none;
   }
   .auth-input:focus {
@@ -23,10 +22,8 @@ const CSS = `
     color: #fff; border: none; border-radius: 10px;
     font-size: 1rem; font-weight: 700; font-family: Inter, sans-serif;
     cursor: pointer; letter-spacing: 0.3px;
-    transition: opacity .2s, transform .15s, box-shadow .2s;
     box-shadow: 0 4px 14px rgba(79,70,229,0.35);
   }
-  .auth-btn:hover:not(:disabled) { opacity: .92; transform: translateY(-1px); }
   .auth-btn:disabled { opacity: .65; cursor: not-allowed; }
   .brand-panel {
     background: linear-gradient(150deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%);

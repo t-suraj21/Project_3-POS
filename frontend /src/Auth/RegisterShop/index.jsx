@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import useRegisterShop from "./useRegisterShop";
+import useRegisterShop from "../../hooks/useRegisterShop";
 
 /* ── Inject CSS ──────────────────────────────────────────────────────────── */
 const CSS = `
@@ -11,7 +11,6 @@ const CSS = `
     border: 1.5px solid #e5e7eb; border-radius: 10px;
     font-size: 0.93rem; font-family: Inter, sans-serif;
     background: #f9fafb; color: #111827;
-    transition: border-color .2s, box-shadow .2s, background .2s;
     outline: none;
   }
   .reg-input:focus {
@@ -26,19 +25,14 @@ const CSS = `
     color: #fff; border: none; border-radius: 10px;
     font-size: 1rem; font-weight: 700; font-family: Inter, sans-serif;
     cursor: pointer; letter-spacing: 0.3px;
-    transition: opacity .2s, transform .15s, box-shadow .2s;
     box-shadow: 0 4px 14px rgba(5,150,105,0.35);
   }
-  .reg-btn:hover:not(:disabled) { opacity: .92; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(5,150,105,0.42); }
-  .reg-btn:active:not(:disabled) { transform: translateY(0); }
   .reg-btn:disabled { opacity: .6; cursor: not-allowed; }
   .reg-btn.indigo {
     background: linear-gradient(135deg, #4f46e5, #7c3aed);
     box-shadow: 0 4px 14px rgba(79,70,229,0.35);
   }
-  .reg-btn.indigo:hover:not(:disabled) { box-shadow: 0 6px 20px rgba(79,70,229,0.42); }
-  .eye-btn2 { background: none; border: none; cursor: pointer; padding: 0; color: #9ca3af; transition: color .2s; line-height: 1; }
-  .eye-btn2:hover { color: #059669; }
+  .eye-btn2 { background: none; border: none; cursor: pointer; padding: 0; color: #9ca3af; line-height: 1; }
   .reg-brand {
     background: linear-gradient(150deg, #059669 0%, #047857 45%, #065f46 100%);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -194,7 +188,6 @@ const RegisterShop = () => {
                   letterSpacing: "0.6rem", textAlign: "center",
                   padding: "0.6rem 0.5rem", border: "2px solid #d1d5db",
                   borderRadius: 12, outline: "none",
-                  transition: "border-color .2s, box-shadow .2s",
                   fontFamily: "Inter, monospace",
                 }}
                 onFocus={e => { e.target.style.borderColor = "#4f46e5"; e.target.style.boxShadow = "0 0 0 3px rgba(79,70,229,0.12)"; }}
@@ -236,7 +229,6 @@ const RegisterShop = () => {
                 padding: "0.5rem 1.25rem", fontSize: "0.875rem",
                 cursor: resending ? "not-allowed" : "pointer",
                 color: "#374151", fontWeight: 600,
-                transition: "border-color .2s",
               }}
             >
               {resending ? "Sending…" : "🔄 Resend OTP"}

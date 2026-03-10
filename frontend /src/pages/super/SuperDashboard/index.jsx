@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../../../hooks/useAuth";
-import useSuperDashboard from "./useSuperDashboard";
+import useSuperDashboard from "../../../hooks/useSuperDashboard";
 import styles from "./styles";
 
 const SuperDashboard = () => {

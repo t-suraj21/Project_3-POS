@@ -1,24 +1,22 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useProducts, IMG_BASE } from "../../../hooks/useProducts";
 import s from "./styles";
 
 const PAGE_SIZE = 12;
 
-// ── Status toggle (local UI only) ─────────────────────────────────────
-const StatusToggle = ({ id }) => {
-  const [on, setOn] = useState(true);
-  return (
-    <button
-      type="button"
-      style={s.toggleTrack(on)}
-      onClick={() => setOn((v) => !v)}
-      title={on ? "Active — click to deactivate" : "Inactive — click to activate"}
-    >
-      <span style={s.toggleThumb(on)} />
-    </button>
-  );
-};
+// ── Status toggle (synced with backend) ─────────────────────────────────────
+const StatusToggle = ({ isOn, onToggle, busy }) => (
+  <button
+    type="button"
+    disabled={busy}
+    style={{ ...s.toggleTrack(isOn), opacity: busy ? 0.6 : 1, cursor: busy ? "wait" : "pointer" }}
+    onClick={onToggle}
+    title={isOn ? "Available — click to mark unavailable" : "Unavailable — click to mark available"}
+  >
+    <span style={s.toggleThumb(isOn)} />
+  </button>
+);
 
 const Products = () => {
   const {
@@ -28,9 +26,17 @@ const Products = () => {
     categoryId, setCategoryId,
     lowStock, setLowStock,
     deleteProduct,
+    toggleStatus,
   } = useProducts();
 
-  const [page, setPage] = useState(1);
+  const [page,        setPage]        = useState(1);
+  const [togglingIds, setTogglingIds] = useState(new Set());
+
+  const handleToggle = useCallback(async (productId, currentStatus) => {
+    setTogglingIds((prev) => new Set([...prev, productId]));
+    await toggleStatus(productId, currentStatus);
+    setTogglingIds((prev) => { const n = new Set(prev); n.delete(productId); return n; });
+  }, [toggleStatus]);
 
   // Client-side pagination
   const total  = products.length;
@@ -209,7 +215,11 @@ const Products = () => {
 
                         {/* Status toggle */}
                         <td style={s.tdCenter}>
-                          <StatusToggle id={p.id} />
+                          <StatusToggle
+                            isOn={p.is_available == null ? true : Boolean(Number(p.is_available))}
+                            busy={togglingIds.has(p.id)}
+                            onToggle={() => handleToggle(p.id, p.is_available == null ? 1 : Number(p.is_available))}
+                          />
                         </td>
 
                         {/* Actions */}

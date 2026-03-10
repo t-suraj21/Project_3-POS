@@ -67,9 +67,6 @@ const ModeBadge = ({ mode }) => {
   return <span style={{ background: c.bg, color: c.color, fontSize: "0.68rem", fontWeight: 700, padding: "0.18rem 0.55rem", borderRadius: "999px", textTransform: "uppercase" }}>{mode || "cash"}</span>;
 };
 
-const hoverOn  = (e) => { e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.10)"; e.currentTarget.style.transform = "translateY(-2px)"; };
-const hoverOff = (e) => { e.currentTarget.style.boxShadow = ""; e.currentTarget.style.transform = ""; };
-
 const ShopDashboard = () => {
   const { stats, loading, error, refresh } = useShopDashboard();
   const { id } = useParams();
@@ -114,7 +111,7 @@ const ShopDashboard = () => {
       <div style={{ ...s.statsGrid, gridTemplateColumns: "repeat(auto-fit,minmax(185px,1fr))", marginBottom: "2rem" }}>
         {OVERVIEW_CARDS.map(({ key, label, icon, bg, color, path }) => (
           <Link key={key} to={`${base}/${path}`} style={{ textDecoration: "none" }}>
-            <div style={{ ...s.statCard, cursor: "pointer", transition: "box-shadow 0.15s,transform 0.15s" }} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
+            <div style={{ ...s.statCard, cursor: "pointer" }}>
               <div style={{ ...s.statIcon, background: bg, color }}>{icon}</div>
               <div style={{ flex: 1 }}>
                 <p style={s.statLabel}>{label}</p>
@@ -131,7 +128,7 @@ const ShopDashboard = () => {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: "1rem", marginBottom: "2rem" }}>
         {SUMMARY_CARDS.map(({ key, label, icon, bg, iconBg, color, path, isMoney }) => (
           <Link key={key} to={`${base}/${path}`} style={{ textDecoration: "none" }}>
-            <div style={{ background: bg, borderRadius: "14px", padding: "1.1rem 1.2rem", display: "flex", flexDirection: "column", gap: "0.5rem", border: "1.5px solid rgba(0,0,0,0.06)", cursor: "pointer", transition: "box-shadow 0.15s,transform 0.15s" }} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
+            <div style={{ background: bg, borderRadius: "14px", padding: "1.1rem 1.2rem", display: "flex", flexDirection: "column", gap: "0.5rem", border: "1.5px solid rgba(0,0,0,0.06)", cursor: "pointer" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
                 <span style={{ background: iconBg, borderRadius: "8px", width: "34px", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem" }}>{icon}</span>
                 <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</span>
@@ -152,7 +149,7 @@ const ShopDashboard = () => {
       <div style={s.periodGrid}>
         {SALES_PERIODS.map(({ key, label }) => (
           <Link key={key} to={`${base}/orders`} style={{ textDecoration: "none" }}>
-            <div style={{ ...s.periodCard, borderTop: "3px solid #10b981", cursor: "pointer", transition: "box-shadow 0.15s,transform 0.15s" }} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
+            <div style={{ ...s.periodCard, borderTop: "3px solid #10b981", cursor: "pointer" }}>
               <p style={s.periodPeriod}>{label}</p>
               <p style={{ ...s.periodValue, color: "#059669" }}>{num(stats?.[key])}</p>
               <p style={s.periodSub}>orders</p>
@@ -169,7 +166,7 @@ const ShopDashboard = () => {
       <div style={s.periodGrid}>
         {REVENUE_PERIODS.map(({ key, label }) => (
           <Link key={key} to={`${base}/reports`} style={{ textDecoration: "none" }}>
-            <div style={{ ...s.periodCard, borderTop: "3px solid #4f46e5", cursor: "pointer", transition: "box-shadow 0.15s,transform 0.15s" }} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
+            <div style={{ ...s.periodCard, borderTop: "3px solid #4f46e5", cursor: "pointer" }}>
               <p style={s.periodPeriod}>{label}</p>
               <p style={{ ...s.periodValue, color: "#4f46e5" }}>{fmtShort(stats?.[key])}</p>
             </div>

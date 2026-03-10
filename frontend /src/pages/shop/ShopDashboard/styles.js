@@ -58,7 +58,6 @@ const s = {
     alignItems: "center",
     gap: "1rem",
     border: "1px solid #f1f5f9",
-    transition: "box-shadow 0.2s",
   },
   statIcon: {
     fontSize: "1.45rem",

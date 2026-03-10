@@ -186,7 +186,6 @@ const s = {
   tr: (i) => ({
     background: i % 2 === 0 ? "#fff" : "#fafafa",
     borderBottom: "1px solid #f3f4f6",
-    transition: "background 0.1s",
   }),
 
   td: {

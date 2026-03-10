@@ -1,3 +1,18 @@
+/**
+ * App.jsx — Application Root
+ *
+ * This file owns the entire routing tree for the POS frontend.
+ * It defines:
+ *   - Public routes (login, register, forgot/reset password)
+ *   - Super Admin routes (platform-level oversight)
+ *   - Shop Admin routes (everything under /shop/:id/*)
+ *   - A smart redirect at / that sends the user to the right
+ *     dashboard based on their role, or to /login if not logged in
+ *
+ * Route protection is handled by two wrapper components defined here:
+ *   SmartRedirect    — sends a logged-in user to the right dashboard
+ *   ShopAdminLayout  — wraps all shop pages with a sidebar + guards the route
+ */
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { useAuth } from "./hooks/useAuth";
@@ -28,7 +43,13 @@ import ShopSettings    from "./pages/shop/ShopSettings";
 import Reports         from "./pages/shop/Reports";
 import ShopLayout     from "./components/ShopLayout";
 
-/** Redirects to the user's dashboard if already logged in, otherwise /login */
+/**
+ * SmartRedirect — intelligent default redirect
+ *
+ * Handles the root path ("/") and any unmatched routes ("*").
+ * Instead of always going to /login, we check if the user is already
+ * logged in and send them straight to their role-appropriate dashboard.
+ */
 const SmartRedirect = () => {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
@@ -36,7 +57,14 @@ const SmartRedirect = () => {
   return <Navigate to={`/shop/${user.shop_id}/dashboard`} replace />;
 };
 
-/** Layout route: protects all /shop/:id/* paths and injects the sidebar */
+/**
+ * ShopAdminLayout — layout + auth guard for all shop-admin pages
+ *
+ * Wraps every /shop/:id/* route with:
+ *   1. A ProtectedRoute that rejects non-shop_admin callers
+ *   2. The ShopLayout sidebar + topbar
+ * <Outlet /> renders the matched child route inside the layout.
+ */
 const ShopAdminLayout = () => (
   <ProtectedRoute role="shop_admin">
     <ShopLayout>
@@ -127,7 +155,7 @@ function App() {
   );
 }
 
-// Quick placeholder dashboard style
+// Temporary placeholder style used by the Cashier POS page stub
 const dashStyle = (accent) => ({
   minHeight: "100vh",
   display: "flex",

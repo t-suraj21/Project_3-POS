@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import useResetPassword from "./useResetPassword";
+import useResetPassword from "../../hooks/useResetPassword";
 
 /* ── Inject CSS ── */
 const CSS = `
@@ -11,7 +11,6 @@ const CSS = `
     border: 1.5px solid #e5e7eb; border-radius: 10px;
     font-size: 0.95rem; font-family: Inter, sans-serif;
     background: #f9fafb; color: #111827;
-    transition: border-color .2s, box-shadow .2s, background .2s;
     outline: none;
   }
   .auth-input:focus {
@@ -25,13 +24,10 @@ const CSS = `
     color: #fff; border: none; border-radius: 10px;
     font-size: 1rem; font-weight: 700; font-family: Inter, sans-serif;
     cursor: pointer; letter-spacing: 0.3px;
-    transition: opacity .2s, transform .15s, box-shadow .2s;
     box-shadow: 0 4px 14px rgba(79,70,229,0.35);
   }
-  .auth-btn:hover:not(:disabled) { opacity: .92; transform: translateY(-1px); }
   .auth-btn:disabled { opacity: .65; cursor: not-allowed; }
-  .eye-btn { background: none; border: none; cursor: pointer; padding: 0; color: #9ca3af; transition: color .2s; line-height: 1; }
-  .eye-btn:hover { color: #4f46e5; }
+  .eye-btn { background: none; border: none; cursor: pointer; padding: 0; color: #9ca3af; line-height: 1; }
   .brand-panel {
     background: linear-gradient(150deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -229,7 +225,7 @@ const ResetPassword = () => {
                         const strength = len >= 12 ? 4 : len >= 9 ? 3 : len >= 6 ? 2 : 1;
                         const colors = ["", "#ef4444", "#f59e0b", "#22c55e", "#4f46e5"];
                         return (
-                          <div key={bar} style={{ flex: 1, height: 4, borderRadius: 9999, background: bar <= strength ? colors[strength] : "#e5e7eb", transition: "background 0.3s" }} />
+                          <div key={bar} style={{ flex: 1, height: 4, borderRadius: 9999, background: bar <= strength ? colors[strength] : "#e5e7eb" }} />
                         );
                       })}
                     </div>

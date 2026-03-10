@@ -345,7 +345,6 @@ const s = {
     fontWeight: 700,
     fontSize: "0.82rem",
     cursor: "pointer",
-    transition: "all 0.15s",
     fontFamily: "inherit",
   }),
 

@@ -67,7 +67,6 @@ const s = {
     cursor: "pointer",
     fontWeight: 700,
     fontSize: "0.82rem",
-    transition: "background 0.15s",
   },
   filterChip: (active) => ({
     padding: "0.48rem 1.1rem",
@@ -78,7 +77,6 @@ const s = {
     border: "1.5px solid " + (active ? "#6366f1" : "#e2e8f0"),
     background: active ? "#eef2ff" : "#fff",
     color: active ? "#4f46e5" : "#64748b",
-    transition: "all 0.15s",
   }),
   addBtn: {
     marginLeft: "auto",
@@ -277,7 +275,6 @@ const s = {
     border: "1.5px solid #e2e8f0",
     fontSize: "0.9rem",
     outline: "none",
-    transition: "border-color 0.15s",
     color: "#0f172a",
   },
   select: {

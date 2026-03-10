@@ -159,6 +159,18 @@ export const useSubCategories = () => {
     } finally { setEditSaving(false); }
   };
 
+  // ── Toggle status ──────────────────────────────────────────────────
+  const handleToggleStatus = async (id) => {
+    try {
+      const res = await api.patch(`/api/categories/${id}/status`);
+      setCategories((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, status: res.data.status } : c))
+      );
+    } catch (err) {
+      alert(err.response?.data?.error || "Failed to update status.");
+    }
+  };
+
   // ── Delete ────────────────────────────────────────────────────────
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this sub-category?")) return;
@@ -190,5 +202,7 @@ export const useSubCategories = () => {
     openEdit, closeEdit, handleUpdate,
     editSaving, editError,
     handleDelete,
+    // status toggle
+    handleToggleStatus,
   };
 };

@@ -1,8 +1,41 @@
+/**
+ * useSales.js — Sales / POS Terminal Hook
+ *
+ * Manages all state and logic for the Sales (POS) page where the cashier
+ * builds up a cart and proceeds to billing. This is the most interactive
+ * hook in the app — it handles:
+ *
+ *   Product catalogue:
+ *     - Fetching available products and filtering by search / category
+ *     - Only available products are loaded (available_only=1) so the
+ *       cashier never sees products the owner has disabled
+ *
+ *   Cart management:
+ *     - Adding / removing items
+ *     - Adjusting quantity (with stock limit enforcement)
+ *     - Setting per-item discounts
+ *     - Clearing the cart
+ *
+ *   Customer:
+ *     - Selecting an existing customer account from the dropdown
+ *     - Or entering a walk-in customer's name and phone manually
+ *
+ *   Pricing:
+ *     - Coupon and extra discount amounts (in rupees)
+ *     - Real-time grand total, subtotal, tax, and discount calculations
+ *
+ *   Checkout:
+ *     - Validates the cart is not empty before proceeding
+ *     - Navigates to /billing, passing the full cart + totals as route state
+ *       so the Billing page can render the receipt and take payment
+ *
+ * The shopId comes from the :id URL param and must be present on the route.
+ */
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 
-export const IMG_BASE = "";   // images proxied via Vite → /uploads/...
+export const IMG_BASE = "";   // product images are proxied via Vite → /uploads/...
 
 const useSales = () => {
   const { id: shopId } = useParams();
@@ -52,6 +85,7 @@ const useSales = () => {
       const params = new URLSearchParams();
       if (search)     params.set("search",      search);
       if (categoryId) params.set("category_id", categoryId);
+      params.set("available_only", "1"); // hide products marked as unavailable
       const res = await api.get(`/api/products?${params.toString()}`);
       setProducts(Array.isArray(res.data) ? res.data : (res.data?.products || []));
     } catch {

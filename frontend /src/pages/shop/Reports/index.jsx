@@ -104,9 +104,7 @@ function SimpleTable({ heads, rows, emptyMsg = "No data available" }) {
         <tbody>
           {rows.map((row, i) => (
             <tr key={i}
-              style={{ background: i % 2 === 0 ? T.white : "#fafbff", transition: "background .15s" }}
-              onMouseEnter={e => e.currentTarget.style.background = "#eff6ff"}
-              onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? T.white : "#fafbff"}
+              style={{ background: i % 2 === 0 ? T.white : "#fafbff" }}
             >
               {row.map((cell, j) => (
                 <td key={j} style={{ padding: "10px 14px", borderBottom: `1px solid ${T.border}`, color: T.text }}>{cell}</td>
@@ -192,7 +190,7 @@ function CollectionSection({ collection, dailyBar }) {
               padding: "8px 18px", border: "none", borderRadius: 8, cursor: "pointer",
               background: period === t.key ? T.primary : "transparent",
               color: period === t.key ? "#fff" : T.sub,
-              fontWeight: 700, fontSize: 13, transition: "all .18s",
+              fontWeight: 700, fontSize: 13,
             }}>
             {t.label}
           </button>
@@ -282,7 +280,7 @@ function TopProductsSection({ topByQty, topByRevenue }) {
             <span style={{ fontWeight: 700, color: T.primary }}>{money(p.total_revenue)}</span>,
             <span style={{ fontWeight: 600, color: p.stock === 0 ? T.red : p.stock <= 5 ? T.amber : T.green }}>{p.stock}</span>,
             <div style={{ width: 120, height: 8, background: "#e2e8f0", borderRadius: 4, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${barPct}%`, background: sortBy === "qty" ? T.green : T.primary, borderRadius: 4, transition: "width .4s" }} />
+              <div style={{ height: "100%", width: `${barPct}%`, background: sortBy === "qty" ? T.green : T.primary, borderRadius: 4 }} />
             </div>,
           ];
         })}
@@ -412,7 +410,7 @@ function DateRangeSection({ drFrom, setDrFrom, drTo, setDrTo, drData, drLoading,
               padding: "6px 14px", borderRadius: 20, border: `1.5px solid ${activePreset === i ? T.primary : T.border}`,
               background: activePreset === i ? T.primary : T.white,
               color: activePreset === i ? "#fff" : T.sub,
-              fontWeight: 700, fontSize: 12, cursor: "pointer", transition: "all .15s",
+              fontWeight: 700, fontSize: 12, cursor: "pointer",
             }}>
             {p.label}
           </button>
@@ -437,7 +435,7 @@ function DateRangeSection({ drFrom, setDrFrom, drTo, setDrTo, drData, drLoading,
           style={{
             padding: "9px 22px", background: T.primary, color: "#fff", border: "none", borderRadius: 8,
             fontWeight: 700, fontSize: 14, cursor: drLoading ? "not-allowed" : "pointer",
-            opacity: drLoading ? .7 : 1, boxShadow: "0 2px 8px rgba(79,70,229,.3)", transition: "opacity .15s",
+            opacity: drLoading ? .7 : 1, boxShadow: "0 2px 8px rgba(79,70,229,.3)",
           }}>
           {drLoading ? "Loading…" : "🔍 Generate Report"}
         </button>
@@ -453,7 +451,7 @@ function DateRangeSection({ drFrom, setDrFrom, drTo, setDrTo, drData, drLoading,
       {/* Loading spinner */}
       {drLoading && (
         <div style={{ textAlign: "center", padding: "40px 0", color: T.sub }}>
-          <div style={{ width: 32, height: 32, border: `3px solid ${T.border}`, borderTopColor: T.primary, borderRadius: "50%", animation: "spin .7s linear infinite", display: "inline-block" }} />
+          <div style={{ fontSize: "1.5rem" }}>⏳</div>
           <p style={{ marginTop: 10, fontWeight: 600 }}>Fetching report…</p>
         </div>
       )}
@@ -625,8 +623,7 @@ export default function Reports() {
 
   if (loading) return (
     <div style={{ minHeight: "60vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: T.sub }}>
-      <div style={{ width: 40, height: 40, border: `3px solid ${T.border}`, borderTopColor: T.primary, borderRadius: "50%", animation: "spin .7s linear infinite" }} />
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <div style={{ fontSize: "2rem" }}>⏳</div>
       <p style={{ marginTop: 14, fontWeight: 600 }}>Loading reports…</p>
     </div>
   );
@@ -662,7 +659,6 @@ export default function Reports() {
         </button>
       </div>
 
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
       {/* 1. Custom Date Range Report */}
       <DateRangeSection

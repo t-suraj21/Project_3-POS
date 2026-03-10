@@ -142,16 +142,7 @@ const ShopLayout = ({ children }) => {
             </div>
           )}
         </div>
-        {!mobileOpen && (
-          <button
-            className="sl-collapse-btn"
-            style={S.collapseBtn}
-            onClick={() => setCollapsed(v => !v)}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {collapsed ? "▶" : "◀"}
-          </button>
-        )}
+        
       </div>
 
       {/* Section label */}
@@ -371,9 +362,8 @@ const ShopLayout = ({ children }) => {
         {/* Top bar */}
         <header style={S.topBar}>
 
-          {/* Left side: hamburger + page icon + title */}
+          {/* Left side: page icon + title */}
           <div style={{ display: "flex", alignItems: "center", gap: "0.85rem", minWidth: 0 }}>
-            <button style={S.hamburgerBtn} onClick={() => setMobileOpen(v => !v)} title="Toggle menu">☰</button>
             <div style={S.pageIconBadge}>{meta.icon}</div>
             <div style={{ minWidth: 0 }}>
               <div style={S.pageTitleText}>{meta.title}</div>

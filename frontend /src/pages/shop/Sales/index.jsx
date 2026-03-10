@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import useSales from "../../../hooks/useSales";
 import s from "./styles";
@@ -12,7 +11,6 @@ const imgSrc = (img) => img ? `/uploads/products/${img.replace("uploads/products
    Product Card
 ────────────────────────────────────────────────────────────────────────────── */
 const ProductCard = ({ product, onAdd }) => {
-  const [hovered, setHovered] = useState(false);
   const outOfStock = parseInt(product.stock, 10) === 0;
   const src        = imgSrc(product.image);
   const showOld    = parseFloat(product.cost_price) > 0 &&
@@ -20,13 +18,8 @@ const ProductCard = ({ product, onAdd }) => {
 
   return (
     <div
-      style={{
-        ...s.productCard(outOfStock),
-        ...(hovered && !outOfStock ? s.productCardHover : {}),
-      }}
+      style={s.productCard(outOfStock)}
       onClick={() => !outOfStock && onAdd(product)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       title={outOfStock ? "Out of stock" : `Add ${product.name} to cart`}
     >
       {/* Image */}

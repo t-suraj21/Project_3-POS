@@ -20,7 +20,6 @@ const s = {
   input: {
     padding: "0.55rem 0.75rem", borderRadius: "8px",
     border: "1px solid #d1d5db", fontSize: "0.9rem", outline: "none",
-    transition: "border 0.15s",
   },
   textarea: {
     padding: "0.55rem 0.75rem", borderRadius: "8px",
@@ -33,7 +32,7 @@ const s = {
     border: "2px dashed #d1d5db", borderRadius: "10px",
     display: "flex", flexDirection: "column", alignItems: "center",
     justifyContent: "center", minHeight: "160px", cursor: "pointer",
-    background: "#f9fafb", transition: "border-color 0.2s", position: "relative",
+    background: "#f9fafb", position: "relative",
     overflow: "hidden",
   },
   imgIcon: { fontSize: "2.5rem", marginBottom: "0.4rem", color: "#9ca3af" },
@@ -120,12 +119,12 @@ const s = {
   toggleTrack: (on) => ({
     width: "36px", height: "20px", borderRadius: "999px",
     background: on ? "#4f46e5" : "#d1d5db",
-    position: "relative", cursor: "pointer", transition: "background 0.2s", border: "none",
+    position: "relative", cursor: "pointer", border: "none",
   }),
   toggleThumb: (on) => ({
     position: "absolute", top: "2px", left: on ? "18px" : "2px",
     width: "16px", height: "16px", borderRadius: "50%",
-    background: "#fff", transition: "left 0.2s",
+    background: "#fff",
     boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
   }),
 

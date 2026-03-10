@@ -177,7 +177,6 @@ const s = {
 
   tr: (isLow) => ({
     background: isLow ? "#fffbeb" : "transparent",
-    transition: "background 0.12s",
   }),
 
   td: {
@@ -299,7 +298,6 @@ const s = {
     background: on ? "#1a56db" : "#d1d5db",
     position: "relative",
     cursor: "pointer",
-    transition: "background 0.2s",
     border: "none",
     flexShrink: 0,
     display: "inline-block",
@@ -313,7 +311,6 @@ const s = {
     height: "14px",
     borderRadius: "50%",
     background: "#fff",
-    transition: "left 0.18s",
     boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
   }),
 

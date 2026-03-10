@@ -18,6 +18,7 @@ const SubCategories = () => {
     openEdit, closeEdit, handleUpdate,
     editSaving, editError,
     handleDelete,
+    handleToggleStatus,
   } = useSubCategories();
 
   return (
@@ -165,10 +166,16 @@ const SubCategories = () => {
 
                   <td style={s.td}>
                     <div style={s.toggleWrap}>
-                      <button style={s.toggleTrack(true)} onClick={() => {}}>
-                        <div style={s.toggleThumb(true)} />
+                      <button
+                        style={s.toggleTrack(cat.status === 'active')}
+                        onClick={() => handleToggleStatus(cat.id)}
+                        title={cat.status === 'active' ? 'Click to deactivate' : 'Click to activate'}
+                      >
+                        <div style={s.toggleThumb(cat.status === 'active')} />
                       </button>
-                      <span style={{ fontSize: "0.75rem", color: "#16a34a" }}>Active</span>
+                      <span style={{ fontSize: "0.75rem", color: cat.status === 'active' ? "#16a34a" : "#dc2626" }}>
+                        {cat.status === 'active' ? 'Active' : 'Inactive'}
+                      </span>
                     </div>
                   </td>
 

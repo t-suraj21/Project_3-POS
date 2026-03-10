@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import useShopsList from "./useShopsList";
+import useShopsList from "../../../hooks/useShopsList";
 import styles from "./styles";
 
 const ShopsList = () => {

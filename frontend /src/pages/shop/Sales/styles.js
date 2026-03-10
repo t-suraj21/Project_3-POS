@@ -122,17 +122,12 @@ const s = {
     overflow: "hidden",
     cursor: outOfStock ? "not-allowed" : "pointer",
     opacity: outOfStock ? 0.62 : 1,
-    transition: "transform 0.15s, box-shadow 0.15s",
     boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
     display: "flex",
     flexDirection: "column",
   }),
 
-  productCardHover: {
-    transform: "translateY(-2px)",
-    boxShadow: "0 6px 20px rgba(79,70,229,0.13)",
-    border: "1px solid #a5b4fc",
-  },
+  productCardHover: {},
 
   productImgWrap: {
     width: "100%",
@@ -629,7 +624,6 @@ const s = {
     fontSize: "0.82rem",
     cursor: "pointer",
     whiteSpace: "nowrap",
-    transition: "all 0.15s",
   }),
 
   paidRow: {
@@ -751,7 +745,6 @@ const s = {
     cursor: disabled ? "not-allowed" : "pointer",
     letterSpacing: "0.2px",
     boxShadow: disabled ? "none" : "0 3px 10px rgba(30,58,138,0.25)",
-    transition: "all 0.15s",
   }),
 
   // ── Receipt / success modal ───────────────────────────────────────────────────

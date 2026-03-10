@@ -97,7 +97,6 @@ const s = {
     outline: "none",
     background: "#fafafa",
     fontFamily: "inherit",
-    transition: "border-color 0.15s",
     width: "100%",
     boxSizing: "border-box",
   },
@@ -394,7 +393,6 @@ const s = {
     fontSize: "0.9rem",
     cursor: active ? "pointer" : "not-allowed",
     fontFamily: "inherit",
-    transition: "background 0.2s",
   }),
 
   // ── Loading skeleton ──────────────────────────────────────────────────────

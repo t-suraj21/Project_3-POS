@@ -148,6 +148,18 @@ export const useCategories = () => {
     } finally { setEditSaving(false); }
   };
 
+  // ── Toggle status ──────────────────────────────────────────────────
+  const handleToggleStatus = async (id) => {
+    try {
+      const res = await api.patch(`/api/categories/${id}/status`);
+      setCategories((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, status: res.data.status } : c))
+      );
+    } catch (err) {
+      alert(err.response?.data?.error || "Failed to update status.");
+    }
+  };
+
   // ── Delete ────────────────────────────────────────────────────────
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this category?")) return;
@@ -183,5 +195,7 @@ export const useCategories = () => {
     editSaving, editError,
     // delete
     handleDelete,
+    // status toggle
+    handleToggleStatus,
   };
 };

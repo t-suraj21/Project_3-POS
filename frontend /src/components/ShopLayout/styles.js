@@ -30,7 +30,6 @@ export const sidebar = {
   height: "100vh",
   boxShadow: "3px 0 28px rgba(0,0,0,0.32)",
   zIndex: 100,
-  transition: "width 0.25s cubic-bezier(0.4,0,0.2,1)",
   overflow: "hidden",
 };
 
@@ -44,7 +43,6 @@ export const sidebarMobileDrawer = {
   flexDirection: "column",
   boxShadow: "4px 0 32px rgba(0,0,0,0.45)",
   zIndex: 200,
-  transition: "left 0.28s cubic-bezier(0.4,0,0.2,1)",
   overflow: "hidden",
 };
 
@@ -96,7 +94,6 @@ export const collapseBtn = {
   alignItems: "center",
   justifyContent: "center",
   fontSize: "0.72rem",
-  transition: "background 0.15s",
 };
 
 // ── Nav section label ────────────────────────────────────────────
@@ -207,7 +204,6 @@ export const logoutBtn = {
   cursor: "pointer",
   fontWeight: 600,
   width: "100%",
-  transition: "all 0.15s",
 };
 
 // ── Top bar ──────────────────────────────────────────────────────
@@ -358,92 +354,20 @@ export const injectGlobalStyles = () => {
     .sl-nav::-webkit-scrollbar           { width: 4px; }
     .sl-nav::-webkit-scrollbar-track     { background: transparent; }
     .sl-nav::-webkit-scrollbar-thumb     { background: rgba(255,255,255,0.12); border-radius: 4px; }
-    .sl-nav::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
 
     /* Main content scrollbar */
     .sl-main::-webkit-scrollbar           { width: 6px; }
     .sl-main::-webkit-scrollbar-track     { background: #f1f5f9; }
     .sl-main::-webkit-scrollbar-thumb     { background: #cbd5e1; border-radius: 6px; }
-    .sl-main::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-    /* Nav link hover */
-    .sl-nav-link { transition: background 0.17s ease, color 0.17s ease, box-shadow 0.17s ease !important; }
-    .sl-nav-link:hover { background: rgba(255,255,255,0.09) !important; color: rgba(255,255,255,0.92) !important; }
-
-    /* Sub-link hover */
-    .sl-sub-link { transition: background 0.15s ease, color 0.15s ease !important; }
-    .sl-sub-link:hover { background: rgba(129,140,248,0.13) !important; color: #a5b4fc !important; }
-
-    /* Collapse button hover */
-    .sl-collapse-btn:hover { background: rgba(255,255,255,0.14) !important; }
-
-    /* Logout button hover (turns red) */
-    .sl-logout:hover {
-      background: rgba(239,68,68,0.14) !important;
-      border-color: rgba(239,68,68,0.35) !important;
-      color: #fca5a5 !important;
-    }
-
-    /* Top-bar "New Sale" button hover */
-    .sl-topbar-sale { transition: background 0.15s, box-shadow 0.15s, transform 0.15s; }
-    .sl-topbar-sale:hover {
-      background: #4f46e5 !important;
-      box-shadow: 0 4px 16px rgba(99,102,241,0.5) !important;
-      transform: translateY(-1px);
-    }
-
-    /* Collapsed-sidebar tooltip */
-    .sl-tip { position: relative; }
-    .sl-tip::after {
-      content: attr(data-tip);
-      position: absolute;
-      left: calc(100% + 10px);
-      top: 50%;
-      transform: translateY(-50%);
-      background: #1e293b;
-      color: #f1f5f9;
-      font-size: 0.77rem;
-      font-weight: 600;
-      padding: 0.3rem 0.65rem;
-      border-radius: 8px;
-      white-space: nowrap;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.15s ease;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.28);
-      z-index: 9999;
-    }
-    .sl-tip::before {
-      content: "";
-      position: absolute;
-      left: calc(100% + 6px);
-      top: 50%;
-      transform: translateY(-50%);
-      border: 5px solid transparent;
-      border-right-color: #1e293b;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.15s ease;
-      z-index: 9999;
-    }
-    .sl-tip:hover::after,
-    .sl-tip:hover::before { opacity: 1; }
-
-    /* Animated sub-menu expand/collapse */
-    .sl-submenu-wrap { overflow: hidden; transition: max-height 0.26s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease; }
+    /* Sub-menu expand/collapse */
+    .sl-submenu-wrap { overflow: hidden; }
     .sl-submenu-wrap.open   { max-height: 320px; opacity: 1; }
     .sl-submenu-wrap.closed { max-height: 0;     opacity: 0; }
 
-    /* Chevron rotation when group is open */
-    .sl-chevron { display: inline-block; font-size: 0.68rem; opacity: 0.5; transition: transform 0.22s ease; }
+    /* Chevron when group is open */
+    .sl-chevron { display: inline-block; font-size: 0.68rem; opacity: 0.5; }
     .sl-chevron.open { transform: rotate(90deg); }
-
-    /* Online status pulse ring */
-    @keyframes sl-pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.45); }
-      50%       { box-shadow: 0 0 0 4px rgba(34,197,94,0); }
-    }
-    .sl-online-dot { animation: sl-pulse 2.6s infinite; }
   `;
   document.head.appendChild(el);
 };
