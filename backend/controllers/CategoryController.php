@@ -63,7 +63,7 @@ class CategoryController
         $whereSQL = implode(' AND ', $where);
 
         $stmt = $conn->prepare("
-            SELECT c.id, c.shop_id, c.parent_id, c.name, c.description, c.image, c.created_at,
+            SELECT c.id, c.shop_id, c.parent_id, c.name, c.description, c.image, c.status, c.created_at,
                    p.name AS parent_name,
                    (SELECT COUNT(*) FROM products pr WHERE pr.category_id = c.id) AS product_count
             FROM   categories c
@@ -147,6 +147,31 @@ class CategoryController
         $stmt->execute([trim($data['name']), $data['description'] ?: null, $imagePath, $id, $shopId]);
 
         echo json_encode(["message" => "Category updated"]);
+    }
+
+    // PATCH /api/categories/:id/status  — toggle active / inactive
+    public static function toggleStatus(array $user, int $id): void
+    {
+        global $conn;
+
+        $shopId = (int) $user['shop_id'];
+
+        $row = $conn->prepare("SELECT status FROM categories WHERE id = ? AND shop_id = ?");
+        $row->execute([$id, $shopId]);
+        $cat = $row->fetch(PDO::FETCH_ASSOC);
+
+        if (!$cat) {
+            http_response_code(404);
+            echo json_encode(["error" => "Category not found"]);
+            return;
+        }
+
+        $newStatus = $cat['status'] === 'active' ? 'inactive' : 'active';
+
+        $conn->prepare("UPDATE categories SET status = ? WHERE id = ? AND shop_id = ?")
+             ->execute([$newStatus, $id, $shopId]);
+
+        echo json_encode(["message" => "Status updated", "status" => $newStatus]);
     }
 
     // DELETE /api/categories/:id

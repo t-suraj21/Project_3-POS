@@ -14,6 +14,13 @@ if ($uri === '/api/products') {
     if ($method === 'POST') { ProductController::create($user);    exit; }
 }
 
+// PATCH /api/products/:id/status  — toggle available / unavailable
+if (preg_match('#^/api/products/(\d+)/status$#', $uri, $m)) {
+    $user = verifyRole('shop_admin');
+    $id   = (int) $m[1];
+    if ($method === 'PATCH') { ProductController::toggleStatus($user, $id); exit; }
+}
+
 // GET|POST(_method=PUT)|PUT|DELETE /api/products/:id
 if (preg_match('#^/api/products/(\d+)$#', $uri, $m)) {
     $user = verifyRole('shop_admin');

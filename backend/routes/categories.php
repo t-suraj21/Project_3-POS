@@ -21,6 +21,13 @@ if ($uri === '/api/categories') {
     if ($method === 'POST') { CategoryController::create($user);   exit; }
 }
 
+// PATCH /api/categories/:id/status  — toggle active/inactive
+if (preg_match('#^/api/categories/(\d+)/status$#', $uri, $m)) {
+    $user = verifyRole('shop_admin');
+    $id   = (int) $m[1];
+    if ($method === 'PATCH') { CategoryController::toggleStatus($user, $id); exit; }
+}
+
 // PUT|DELETE /api/categories/:id
 if (preg_match('#^/api/categories/(\d+)$#', $uri, $m)) {
     $user = verifyRole('shop_admin');

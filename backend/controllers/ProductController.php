@@ -1,13 +1,39 @@
 <?php
+/**
+ * ProductController.php — Product Management
+ *
+ * Handles everything related to a shop's product catalogue:
+ *   - Listing products with search, category, low-stock, and availability filters
+ *   - Creating new products (with optional image upload)
+ *   - Updating existing products (including swapping or removing the image)
+ *   - Toggling the "is_available" flag so the owner can hide products from the sales screen
+ *   - Deleting products (also removes the uploaded image from disk)
+ *
+ * All methods receive the decoded JWT payload as $user so they can scope
+ * every query to the correct shop_id. A shop owner can only ever see and
+ * modify their own products — never another shop's.
+ */
 require_once __DIR__ . "/../config/database.php";
 
 class ProductController
 {
+    // Absolute path to the folder where product images are stored on disk.
+    // This is kept as a class constant so every method references the same location.
     private static string $uploadDir = __DIR__ . "/../uploads/products/";
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    // Private Helpers
+    // ─────────────────────────────────────────────────────────────────────────
 
-    /** Remove old image file safely */
+    /**
+     * Delete an uploaded product image from disk.
+     *
+     * We store a relative path like "uploads/products/prod_abc.jpg" in the DB.
+     * This helper resolves that to an absolute path and removes the file safely,
+     * doing nothing if the path is null or the file no longer exists.
+     *
+     * @param string|null $path  The relative path stored in the database
+     */
     private static function deleteImage(?string $path): void
     {
         if ($path) {
@@ -16,7 +42,19 @@ class ProductController
         }
     }
 
-    /** Handle image upload; returns relative path or null */
+    /**
+     * Handle an incoming image file upload.
+     *
+     * Validates the MIME type (only common image formats accepted) and the file
+     * size (max 2 MB), then moves the temp file into the uploads directory with
+     * a unique filename. Returns the relative path to store in the database, or
+     * null if no file was submitted.
+     *
+     * We generate a unique filename with uniqid() to avoid collisions and to
+     * prevent users from guessing or overwriting each other's images.
+     *
+     * @return string|null  Relative path like "uploads/products/prod_abc.jpg", or null
+     */
     private static function handleUpload(): ?string
     {
         if (empty($_FILES['image']['tmp_name'])) return null;
@@ -50,7 +88,21 @@ class ProductController
         return "uploads/products/{$filename}";
     }
 
-    // ─── GET /api/products ────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    // GET /api/products
+    // ─────────────────────────────────────────────────────────────────────────
+    /**
+     * Return the full product list for the authenticated shop.
+     *
+     * Supports four optional query-string filters that can be combined freely:
+     *   ?search=<text>          — full-text search across name, SKU, barcode, description
+     *   ?category_id=<id>       — narrow down to a single category
+     *   ?low_stock=1            — only show products at or below their alert stock level
+     *   ?available_only=1       — only show products marked as available (used by the Sales screen)
+     *
+     * Each product row includes its category name and parent category id so
+     * the frontend can display the full category path without a second request.
+     */
     public static function getAll(array $user): void
     {
         global $conn;
@@ -76,13 +128,19 @@ class ProductController
             $where[] = "p.stock <= p.alert_stock";
         }
 
+        // When fetching for the sales / billing screen, hide unavailable products
+        $availableOnly = isset($_GET['available_only']) && $_GET['available_only'] === '1';
+        if ($availableOnly) {
+            $where[] = "p.is_available = 1";
+        }
+
         $whereSQL = implode(' AND ', $where);
 
         $stmt = $conn->prepare("
             SELECT p.id, p.shop_id, p.category_id, p.name, p.sku, p.barcode,
                    p.description, p.brand, p.image,
                    p.cost_price, p.sell_price, p.stock, p.alert_stock,
-                   p.gst_percent, p.price_type, p.created_at,
+                   p.gst_percent, p.price_type, p.is_available, p.created_at,
                    c.name AS category_name, c.parent_id AS category_parent_id
             FROM products p
             LEFT JOIN categories c ON c.id = p.category_id
@@ -95,7 +153,16 @@ class ProductController
         echo json_encode(["products" => $products]);
     }
 
-    // ─── GET /api/products/:id ────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    // GET /api/products/:id
+    // ─────────────────────────────────────────────────────────────────────────
+    /**
+     * Return a single product by its ID.
+     *
+     * We include the category name in the response so the edit form can
+     * pre-populate the category dropdown without a separate API call.
+     * The shop_id check ensures a shop owner can never peek at a competitor's products.
+     */
     public static function getOne(array $user, int $id): void
     {
         global $conn;
@@ -118,7 +185,23 @@ class ProductController
         echo json_encode(["product" => $product]);
     }
 
-    // ─── POST /api/products ───────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    // POST /api/products
+    // ─────────────────────────────────────────────────────────────────────────
+    /**
+     * Create a brand-new product for the shop.
+     *
+     * Accepts both JSON bodies and multipart/form-data (needed when an image
+     * is being uploaded at the same time). The content-type header decides
+     * which parsing path we take.
+     *
+     * Only 'name' and 'sell_price' are strictly required. Everything else
+     * (SKU, barcode, stock, GST, description, image) is optional.
+     *
+     * After inserting, we immediately SELECT the new row back from the database
+     * and return it in the response so the frontend has the generated ID and
+     * all default values without needing to make a second GET request.
+     */
     public static function create(array $user): void
     {
         global $conn;
@@ -174,7 +257,21 @@ class ProductController
         ]);
     }
 
-    // ─── PUT /api/products/:id ────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    // PUT /api/products/:id
+    // ─────────────────────────────────────────────────────────────────────────
+    /**
+     * Update an existing product.
+     *
+     * Image handling has three states:
+     *   1. No new file submitted → keep the existing image path as-is
+     *   2. A new file submitted → delete the old file, upload the new one
+     *   3. remove_image=1 in the form → delete the old file, set image to null
+     *
+     * PHP doesn't populate $_POST for a PUT multipart request, so the frontend
+     * sends a POST with a hidden `_method=PUT` field when it needs to upload a
+     * new image alongside the update. The route file handles this override.
+     */
     public static function update(array $user, int $id): void
     {
         global $conn;
@@ -251,7 +348,71 @@ class ProductController
         echo json_encode(["message" => "Product updated"]);
     }
 
-    // ─── DELETE /api/products/:id ─────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    // PATCH /api/products/:id/status
+    // ─────────────────────────────────────────────────────────────────────────
+    /**
+     * Toggle or explicitly set the "is_available" flag on a product.
+     *
+     * The shop owner uses this to temporarily hide a product from the Sales /
+     * POS screen without deleting it. Useful for out-of-season items, items
+     * being restocked, or products that are temporarily pulled from sale.
+     *
+     * The request body can include:
+     *   { "is_available": 0 }  — explicitly mark as unavailable
+     *   { "is_available": 1 }  — explicitly mark as available
+     *   {}                     — omit the field to flip whatever the current value is
+     *
+     * The frontend does an optimistic UI update (flips the toggle immediately)
+     * and reverts if this request fails, so the response just needs to confirm
+     * the new state.
+     */
+    public static function toggleStatus(array $user, int $id): void
+    {
+        global $conn;
+
+        $shopId = (int) $user['shop_id'];
+
+        // Verify ownership
+        $chk = $conn->prepare("SELECT id, is_available FROM products WHERE id = ? AND shop_id = ?");
+        $chk->execute([$id, $shopId]);
+        $row = $chk->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) {
+            http_response_code(404);
+            echo json_encode(["error" => "Product not found"]);
+            return;
+        }
+
+        $body      = json_decode(file_get_contents("php://input"), true) ?? [];
+        // Accept explicit value or flip current value
+        $newStatus = isset($body['is_available'])
+            ? ((int) $body['is_available'] ? 1 : 0)
+            : ((int) $row['is_available'] ? 0 : 1);
+
+        $conn->prepare("UPDATE products SET is_available = ? WHERE id = ? AND shop_id = ?")
+             ->execute([$newStatus, $id, $shopId]);
+
+        echo json_encode([
+            "message"      => $newStatus ? "Product marked as available" : "Product marked as unavailable",
+            "is_available" => $newStatus,
+        ]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DELETE /api/products/:id
+    // ─────────────────────────────────────────────────────────────────────────
+    /**
+     * Permanently delete a product.
+     *
+     * We first fetch the product to get its image path, then delete both
+     * the database row and the image file on disk. The shop_id check in the
+     * query makes it impossible for one shop to delete another shop's product.
+     *
+     * Note: this is a hard delete. If the product has associated sale_items,
+     * those rows already have a snapshot of the product name and price, so
+     * historical order data is preserved even after the product is gone.
+     */
     public static function delete(array $user, int $id): void
     {
         global $conn;
