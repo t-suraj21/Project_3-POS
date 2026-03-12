@@ -115,6 +115,12 @@ if (str_starts_with($uri, '/api/reports')) {
     exit;
 }
 
+// ── Inventory — stock list, low-stock warnings, stock updates, history
+if (str_starts_with($uri, '/api/inventory')) {
+    require_once __DIR__ . "/routes/inventory.php";
+    exit;
+}
+
 // ── Razorpay webhooks — no JWT here; the payload is verified by HMAC signature
 if (str_starts_with($uri, '/api/webhooks')) {
     require_once __DIR__ . "/routes/webhooks.php";
