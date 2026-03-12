@@ -41,6 +41,7 @@ import Billing           from "./pages/shop/Billing";
 import Orders            from "./pages/shop/Orders";
 import ShopSettings    from "./pages/shop/ShopSettings";
 import Reports         from "./pages/shop/Reports";
+import Inventory       from "./pages/shop/Inventory";
 import ShopLayout     from "./components/ShopLayout";
 
 /**
@@ -128,6 +129,7 @@ function App() {
             <Route path="/shop/:id/orders/pending"   element={<Orders filter="pending" />} />
             <Route path="/shop/:id/orders/refunded"  element={<Orders filter="refunded" />} />
             <Route path="/shop/:id/reports"           element={<Reports />} />
+            <Route path="/shop/:id/inventory"            element={<Inventory />} />
             <Route path="/shop/:id/settings"             element={<ShopSettings />} />
 
           </Route>

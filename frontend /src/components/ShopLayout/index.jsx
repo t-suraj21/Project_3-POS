@@ -15,8 +15,7 @@ const PAGE_META = {
   billing:          { title: "Billing",            icon: "💳" },
   sales:            { title: "New Sale",           icon: "🛒" },
   orders:           { title: "Orders",             icon: "🧾" },
-  reports:          { title: "Reports",            icon: "📊" },
-  settings:         { title: "Settings",           icon: "⚙️" },
+  reports:          { title: "Reports",            icon: "📊" },  inventory:        { title: "Inventory",           icon: "📋" },  settings:         { title: "Settings",           icon: "⚙️" },
 };
 
 const getPageMeta = (pathname) => {
@@ -96,6 +95,7 @@ const ShopLayout = ({ children }) => {
     pathname.includes("/categories") || pathname.includes("/sub-categories")
   );
   const [acctOpen, setAcctOpen] = useState(pathname.includes("/accounts"));
+  const [invOpen,  setInvOpen]  = useState(pathname.includes("/inventory"));
 
   const [collapsed,  setCollapsed]  = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -278,6 +278,18 @@ const ShopLayout = ({ children }) => {
         >
           {({ isActive }) => (
             <>{isActive && <ActiveBar />}<NavIcon emoji="📊" />{!collapsed && <span>Reports</span>}</>
+          )}
+        </NavLink>
+
+        {/* Inventory */}
+        <NavLink
+          to={`${base}/inventory`}
+          className="sl-nav-link sl-tip"
+          data-tip="Inventory"
+          style={({ isActive }) => navStyle(isActive)}
+        >
+          {({ isActive }) => (
+            <>{isActive && <ActiveBar />}<NavIcon emoji="📋" />{!collapsed && <span>Inventory</span>}</>
           )}
         </NavLink>
 
