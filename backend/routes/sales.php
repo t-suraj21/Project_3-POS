@@ -9,7 +9,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'OPTIONS') { http_response_code(204); exit; }
 
-$user = verifyRole('shop_admin');
+$user = verifyModuleAccess('sales');
 
 // GET /api/sales
 if ($uri === '/api/sales' && $method === 'GET') {

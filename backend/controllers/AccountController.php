@@ -7,6 +7,24 @@ require_once __DIR__ . "/../config/database.php";
  */
 class AccountController
 {
+    /**
+     * Check if the user has write permission for accounts.
+     * Only shop_admin and manager can create/update/delete customers.
+     * Account workers can see customers read-only. Sales workers can see for reference.
+     * 
+     * @param array $user Decoded JWT payload with 'role' key
+     * @return void Exits with 403 if unauthorized
+     */
+    private static function requireWritePermission(array $user): void
+    {
+        $canWrite = in_array($user['role'], ['shop_admin', 'manager'], true);
+        if (!$canWrite) {
+            http_response_code(403);
+            echo json_encode(["error" => "You don't have permission to modify customer accounts."]);
+            exit;
+        }
+    }
+
     // ─── GET /api/accounts/customers ─────────────────────────────────────────
     // Returns all credit customers for this shop with optional search & filter.
     public static function getCustomers(array $user): void
@@ -112,6 +130,9 @@ class AccountController
     // Create a new credit customer.
     public static function createCustomer(array $user): void
     {
+        // Check write permission
+        self::requireWritePermission($user);
+
         global $conn;
 
         $data   = json_decode(file_get_contents("php://input"), true) ?? [];
@@ -155,6 +176,9 @@ class AccountController
     // Update customer details (name, phone, address).
     public static function updateCustomer(array $user, int $id): void
     {
+        // Check write permission
+        self::requireWritePermission($user);
+
         global $conn;
 
         $data   = json_decode(file_get_contents("php://input"), true) ?? [];
@@ -191,6 +215,9 @@ class AccountController
     // ─── DELETE /api/accounts/customers/:id ──────────────────────────────────
     public static function deleteCustomer(array $user, int $id): void
     {
+        // Check write permission
+        self::requireWritePermission($user);
+
         global $conn;
 
         $shopId = (int) $user['shop_id'];
@@ -327,6 +354,9 @@ class AccountController
     // Body: { customer_id, amount, payment_mode, note }
     public static function addPayment(array $user): void
     {
+        // Check write permission for payment recording
+        self::requireWritePermission($user);
+
         global $conn;
 
         $data   = json_decode(file_get_contents("php://input"), true) ?? [];

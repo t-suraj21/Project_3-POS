@@ -88,6 +88,24 @@ class ProductController
         return "uploads/products/{$filename}";
     }
 
+    /**
+     * Check if the user has write permission for products.
+     * Only shop_admin, manager, and stock_manager can create/update/delete/toggle products.
+     * Sales workers and cashiers are read-only.
+     * 
+     * @param array $user Decoded JWT payload with 'role' key
+     * @return void Exits with 403 if unauthorized
+     */
+    private static function requireWritePermission(array $user): void
+    {
+        $canWrite = in_array($user['role'], ['shop_admin', 'manager', 'stock_manager'], true);
+        if (!$canWrite) {
+            http_response_code(403);
+            echo json_encode(["error" => "You don't have permission to modify products. Only stock managers and admins can do this."]);
+            exit;
+        }
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // GET /api/products
     // ─────────────────────────────────────────────────────────────────────────
@@ -204,6 +222,9 @@ class ProductController
      */
     public static function create(array $user): void
     {
+        // Check write permission
+        self::requireWritePermission($user);
+
         global $conn;
 
         // Support both JSON body and multipart/form-data
@@ -274,6 +295,9 @@ class ProductController
      */
     public static function update(array $user, int $id): void
     {
+        // Check write permission
+        self::requireWritePermission($user);
+
         global $conn;
 
         $isMultipart = str_contains($_SERVER['CONTENT_TYPE'] ?? '', 'multipart');
@@ -369,6 +393,9 @@ class ProductController
      */
     public static function toggleStatus(array $user, int $id): void
     {
+        // Check write permission
+        self::requireWritePermission($user);
+
         global $conn;
 
         $shopId = (int) $user['shop_id'];
@@ -415,6 +442,9 @@ class ProductController
      */
     public static function delete(array $user, int $id): void
     {
+        // Check write permission
+        self::requireWritePermission($user);
+
         global $conn;
 
         $stmt = $conn->prepare("SELECT image FROM products WHERE id = ? AND shop_id = ?");

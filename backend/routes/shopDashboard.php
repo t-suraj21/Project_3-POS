@@ -9,7 +9,7 @@ if ($method === 'OPTIONS') { http_response_code(204); exit; }
 
 // GET /api/shop/dashboard
 if ($uri === '/api/shop/dashboard' && $method === 'GET') {
-    $user = verifyRole('shop_admin');
+    $user = verifyModuleAccess('shop_dashboard');
     ShopDashboardController::stats($user);
     exit;
 }

@@ -17,6 +17,24 @@
 require_once __DIR__ . "/../utils/jwt.php";
 
 /**
+ * Centralized module access map.
+ *
+ * shop_admin and manager can access all shop modules.
+ * Worker roles are limited to their assigned domains.
+ */
+const MODULE_ROLE_MAP = [
+    'shop_dashboard' => ['shop_admin', 'manager'],
+    'products'       => ['shop_admin', 'manager', 'stock_manager', 'sales_worker', 'cashier'],
+    'categories'     => ['shop_admin', 'manager', 'stock_manager'],
+    'inventory'      => ['shop_admin', 'manager', 'stock_manager'],
+    'accounts'       => ['shop_admin', 'manager', 'account_worker', 'sales_worker', 'cashier'],
+    'sales'          => ['shop_admin', 'manager', 'sales_worker', 'cashier'],
+    'reports'        => ['shop_admin', 'manager'],
+    'settings'       => ['shop_admin', 'manager'],
+    'workers'        => ['shop_admin', 'manager'],
+];
+
+/**
  * Verify the JWT Bearer token and assert the caller holds the required role.
  *
  * Steps:
@@ -28,7 +46,7 @@ require_once __DIR__ . "/../utils/jwt.php";
  * @param  string $requiredRole  The exact role string required (e.g. 'shop_admin')
  * @return array                 Decoded JWT payload on success
  */
-function verifyRole(string $requiredRole): array
+function verifyRole(string|array $requiredRole): array
 {
     $headers    = getallheaders();
     $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
@@ -49,15 +67,37 @@ function verifyRole(string $requiredRole): array
         exit;
     }
 
+    $allowedRoles = is_array($requiredRole) ? $requiredRole : [$requiredRole];
+
     // Token is valid but the user doesn't have the right role for this endpoint.
-    // For example, a cashier trying to access a shop_admin-only route.
-    if ($payload['role'] !== $requiredRole) {
+    if (!in_array($payload['role'], $allowedRoles, true)) {
         http_response_code(403);
-        echo json_encode(["message" => "Forbidden: Requires '$requiredRole' role"]);
+        echo json_encode([
+            "message" => "Forbidden: Requires one of roles: " . implode(', ', $allowedRoles)
+        ]);
         exit;
     }
 
     // All checks passed — hand the payload to the controller.
     return $payload;
+}
+
+/**
+ * Verify caller has access to a functional module.
+ *
+ * @param string $module Module key from MODULE_ROLE_MAP
+ * @return array Decoded JWT payload on success
+ */
+function verifyModuleAccess(string $module): array
+{
+    $allowedRoles = MODULE_ROLE_MAP[$module] ?? null;
+
+    if (!$allowedRoles) {
+        http_response_code(500);
+        echo json_encode(["message" => "Server misconfiguration: unknown module '$module'"]);
+        exit;
+    }
+
+    return verifyRole($allowedRoles);
 }
 ?>

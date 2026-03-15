@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS users (
     name       VARCHAR(150)  NOT NULL,
     email      VARCHAR(150)  UNIQUE NOT NULL,
     password   VARCHAR(255)  NOT NULL,
-    role       ENUM('superadmin','shop_admin','cashier') NOT NULL,
+    role       ENUM('superadmin','shop_admin','manager','sales_worker','account_worker','stock_manager','cashier') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (shop_id) REFERENCES shops(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

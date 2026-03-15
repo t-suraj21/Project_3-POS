@@ -22,35 +22,35 @@ if ($method === 'OPTIONS') { http_response_code(204); exit; }
 
 // GET /api/inventory/summary
 if ($uri === '/api/inventory/summary' && $method === 'GET') {
-    $user = verifyRole('shop_admin');
+    $user = verifyModuleAccess('inventory');
     InventoryController::getSummary($user);
     exit;
 }
 
 // GET /api/inventory/stock
 if ($uri === '/api/inventory/stock' && $method === 'GET') {
-    $user = verifyRole('shop_admin');
+    $user = verifyModuleAccess('inventory');
     InventoryController::getStockList($user);
     exit;
 }
 
 // GET /api/inventory/low-stock
 if ($uri === '/api/inventory/low-stock' && $method === 'GET') {
-    $user = verifyRole('shop_admin');
+    $user = verifyModuleAccess('inventory');
     InventoryController::getLowStock($user);
     exit;
 }
 
 // GET /api/inventory/history
 if ($uri === '/api/inventory/history' && $method === 'GET') {
-    $user = verifyRole('shop_admin');
+    $user = verifyModuleAccess('inventory');
     InventoryController::getHistory($user);
     exit;
 }
 
 // POST /api/inventory/stock/:id  — update stock + log
 if (preg_match('#^/api/inventory/stock/(\d+)$#', $uri, $m) && $method === 'POST') {
-    $user = verifyRole('shop_admin');
+    $user = verifyModuleAccess('inventory');
     InventoryController::updateStock($user, (int) $m[1]);
     exit;
 }
