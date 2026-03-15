@@ -257,19 +257,21 @@ const Sales = () => {
                   </span>
                 </div>
 
-                {/* Returning customer quick-fill */}
-                {customers.length > 0 && (
-                  <select
-                    style={{ ...s.billingSelect, fontSize: "0.78rem", color: "#374151" }}
-                    value={selectedCustomerId}
-                    onChange={handleDropdownSelect}
-                  >
-                    <option value="">↩ Select returning customer (optional)</option>
-                    {customers.map(c => (
-                      <option key={c.id} value={String(c.id)}>{c.name}{c.phone ? ` — ${c.phone}` : ""}</option>
-                    ))}
-                  </select>
-                )}
+                {/* Returning customer quick-fill — Always visible */}
+                <select
+                  style={{ ...s.billingSelect, fontSize: "0.78rem", color: "#374151" }}
+                  value={selectedCustomerId}
+                  onChange={handleDropdownSelect}
+                >
+                  <option value="">
+                    {customers.length === 0 ? "📭 No saved customers — Enter new customer below" : "↩ Select existing customer (optional)"}
+                  </option>
+                  {customers.map(c => (
+                    <option key={c.id} value={String(c.id)}>
+                      {c.name}{c.phone ? ` · ${c.phone}` : ""} {c.remaining_balance ? `(₹${parseFloat(c.remaining_balance).toFixed(2)})` : ""}
+                    </option>
+                  ))}
+                </select>
 
                 {/* Name */}
                 <input

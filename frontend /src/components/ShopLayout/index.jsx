@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { NavLink, useParams, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { canAccessModule } from "../../utils/accessControl";
 import * as S from "./styles";
 
 // ─── Page metadata map ────────────────────────────────────────────
@@ -160,150 +161,182 @@ const ShopLayout = ({ children }) => {
           display: "flex", flexDirection: "column", gap: "0.16rem",
         }}
       >
-        {/* Dashboard */}
-        <NavLink
-          to={`${base}/dashboard`}
-          className="sl-nav-link sl-tip"
-          data-tip="Dashboard"
-          style={({ isActive }) => navStyle(isActive)}
-        >
-          {({ isActive }) => (
-            <>{isActive && <ActiveBar />}<NavIcon emoji="🏠" />{!collapsed && <span>Dashboard</span>}</>
-          )}
-        </NavLink>
-
-        {/* New Sale */}
-        <NavLink
-          to={`${base}/sales`}
-          className="sl-nav-link sl-tip"
-          data-tip="New Sale"
-          style={({ isActive }) => navStyle(isActive)}
-        >
-          {({ isActive }) => (
-            <>{isActive && <ActiveBar />}<NavIcon emoji="🛒" />{!collapsed && <span>New Sale</span>}</>
-          )}
-        </NavLink>
-
-        {/* Orders group */}
-        <div className={collapsed ? "sl-tip" : ""} data-tip="Orders">
-          <button className="sl-nav-link" style={groupStyle(ordOpen)} onClick={() => !collapsed && setOrdOpen(v => !v)}>
-            <NavIcon emoji="🧾" />
-            {!collapsed && (
-              <>
-                <span style={{ flex: 1, textAlign: "left" }}>Orders</span>
-                <span className={`sl-chevron ${ordOpen ? "open" : ""}`}>▶</span>
-              </>
+        {/* Dashboard — only visible to managers and owners */}
+        {canAccessModule(user?.role, "shop_dashboard") && (
+          <NavLink
+            to={`${base}/dashboard`}
+            className="sl-nav-link sl-tip"
+            data-tip="Dashboard"
+            style={({ isActive }) => navStyle(isActive)}
+          >
+            {({ isActive }) => (
+              <>{isActive && <ActiveBar />}<NavIcon emoji="🏠" />{!collapsed && <span>Dashboard</span>}</>
             )}
-          </button>
-          {!collapsed && (
-            <SubMenu open={ordOpen}>
-              <SubItems>
-                <NavLink end to={`${base}/orders`}           className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>All Orders</span></NavLink>
-                <NavLink end to={`${base}/orders/completed`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Completed</span></NavLink>
-                <NavLink end to={`${base}/orders/pending`}   className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Pending / Balance</span></NavLink>
-                <NavLink end to={`${base}/orders/refunded`}  className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Refunded</span></NavLink>
-              </SubItems>
-            </SubMenu>
-          )}
-        </div>
+          </NavLink>
+        )}
 
-        {/* Products group */}
-        <div className={collapsed ? "sl-tip" : ""} data-tip="Products">
-          <button className="sl-nav-link" style={groupStyle(prodOpen)} onClick={() => !collapsed && setProdOpen(v => !v)}>
-            <NavIcon emoji="📦" />
-            {!collapsed && (
-              <>
-                <span style={{ flex: 1, textAlign: "left" }}>Products</span>
-                <span className={`sl-chevron ${prodOpen ? "open" : ""}`}>▶</span>
-              </>
+        {/* New Sale — visible to sales workers, managers, and owners */}
+        {canAccessModule(user?.role, "sales") && (
+          <NavLink
+            to={`${base}/sales`}
+            className="sl-nav-link sl-tip"
+            data-tip="New Sale"
+            style={({ isActive }) => navStyle(isActive)}
+          >
+            {({ isActive }) => (
+              <>{isActive && <ActiveBar />}<NavIcon emoji="🛒" />{!collapsed && <span>New Sale</span>}</>
             )}
-          </button>
-          {!collapsed && (
-            <SubMenu open={prodOpen}>
-              <SubItems>
-                <NavLink to={`${base}/add-product`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Add New</span></NavLink>
-                <NavLink end to={`${base}/products`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>All Products</span></NavLink>
-              </SubItems>
-            </SubMenu>
-          )}
-        </div>
+          </NavLink>
+        )}
 
-        {/* Categories group */}
-        <div className={collapsed ? "sl-tip" : ""} data-tip="Categories">
-          <button className="sl-nav-link" style={groupStyle(catOpen)} onClick={() => !collapsed && setCatOpen(v => !v)}>
-            <NavIcon emoji="🗂️" />
+        {/* Orders group — visible to sales workers and managers */}
+        {canAccessModule(user?.role, "sales") && (
+          <div className={collapsed ? "sl-tip" : ""} data-tip="Orders">
+            <button className="sl-nav-link" style={groupStyle(ordOpen)} onClick={() => !collapsed && setOrdOpen(v => !v)}>
+              <NavIcon emoji="🧾" />
+              {!collapsed && (
+                <>
+                  <span style={{ flex: 1, textAlign: "left" }}>Orders</span>
+                  <span className={`sl-chevron ${ordOpen ? "open" : ""}`}>▶</span>
+                </>
+              )}
+            </button>
             {!collapsed && (
-              <>
-                <span style={{ flex: 1, textAlign: "left" }}>Categories</span>
-                <span className={`sl-chevron ${catOpen ? "open" : ""}`}>▶</span>
-              </>
+              <SubMenu open={ordOpen}>
+                <SubItems>
+                  <NavLink end to={`${base}/orders`}           className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>All Orders</span></NavLink>
+                  <NavLink end to={`${base}/orders/completed`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Completed</span></NavLink>
+                  <NavLink end to={`${base}/orders/pending`}   className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Pending / Balance</span></NavLink>
+                  <NavLink end to={`${base}/orders/refunded`}  className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Refunded</span></NavLink>
+                </SubItems>
+              </SubMenu>
             )}
-          </button>
-          {!collapsed && (
-            <SubMenu open={catOpen}>
-              <SubItems>
-                <NavLink end to={`${base}/categories`}     className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Categories</span></NavLink>
-                <NavLink end to={`${base}/sub-categories`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Sub-Categories</span></NavLink>
-              </SubItems>
-            </SubMenu>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Accounts group */}
-        <div className={collapsed ? "sl-tip" : ""} data-tip="Accounts">
-          <button className="sl-nav-link" style={groupStyle(acctOpen)} onClick={() => !collapsed && setAcctOpen(v => !v)}>
-            <NavIcon emoji="💳" />
+        {/* Products group — visible to stock managers and managers */}
+        {canAccessModule(user?.role, "products") && (
+          <div className={collapsed ? "sl-tip" : ""} data-tip="Products">
+            <button className="sl-nav-link" style={groupStyle(prodOpen)} onClick={() => !collapsed && setProdOpen(v => !v)}>
+              <NavIcon emoji="📦" />
+              {!collapsed && (
+                <>
+                  <span style={{ flex: 1, textAlign: "left" }}>Products</span>
+                  <span className={`sl-chevron ${prodOpen ? "open" : ""}`}>▶</span>
+                </>
+              )}
+            </button>
             {!collapsed && (
-              <>
-                <span style={{ flex: 1, textAlign: "left" }}>Accounts</span>
-                <span className={`sl-chevron ${acctOpen ? "open" : ""}`}>▶</span>
-              </>
+              <SubMenu open={prodOpen}>
+                <SubItems>
+                  <NavLink to={`${base}/add-product`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Add New</span></NavLink>
+                  <NavLink end to={`${base}/products`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>All Products</span></NavLink>
+                </SubItems>
+              </SubMenu>
             )}
-          </button>
-          {!collapsed && (
-            <SubMenu open={acctOpen}>
-              <SubItems>
-                <NavLink end to={`${base}/accounts`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Customers</span></NavLink>
-              </SubItems>
-            </SubMenu>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Reports */}
-        <NavLink
-          to={`${base}/reports`}
-          className="sl-nav-link sl-tip"
-          data-tip="Reports"
-          style={({ isActive }) => navStyle(isActive)}
-        >
-          {({ isActive }) => (
-            <>{isActive && <ActiveBar />}<NavIcon emoji="📊" />{!collapsed && <span>Reports</span>}</>
-          )}
-        </NavLink>
+        {/* Categories group — visible to stock managers and managers */}
+        {canAccessModule(user?.role, "categories") && (
+          <div className={collapsed ? "sl-tip" : ""} data-tip="Categories">
+            <button className="sl-nav-link" style={groupStyle(catOpen)} onClick={() => !collapsed && setCatOpen(v => !v)}>
+              <NavIcon emoji="🗂️" />
+              {!collapsed && (
+                <>
+                  <span style={{ flex: 1, textAlign: "left" }}>Categories</span>
+                  <span className={`sl-chevron ${catOpen ? "open" : ""}`}>▶</span>
+                </>
+              )}
+            </button>
+            {!collapsed && (
+              <SubMenu open={catOpen}>
+                <SubItems>
+                  <NavLink end to={`${base}/categories`}     className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Categories</span></NavLink>
+                  <NavLink end to={`${base}/sub-categories`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Sub-Categories</span></NavLink>
+                </SubItems>
+              </SubMenu>
+            )}
+          </div>
+        )}
 
-        {/* Inventory */}
-        <NavLink
-          to={`${base}/inventory`}
-          className="sl-nav-link sl-tip"
-          data-tip="Inventory"
-          style={({ isActive }) => navStyle(isActive)}
-        >
-          {({ isActive }) => (
-            <>{isActive && <ActiveBar />}<NavIcon emoji="📋" />{!collapsed && <span>Inventory</span>}</>
-          )}
-        </NavLink>
+        {/* Accounts group — visible to account workers and managers */}
+        {canAccessModule(user?.role, "accounts") && (
+          <div className={collapsed ? "sl-tip" : ""} data-tip="Accounts">
+            <button className="sl-nav-link" style={groupStyle(acctOpen)} onClick={() => !collapsed && setAcctOpen(v => !v)}>
+              <NavIcon emoji="💳" />
+              {!collapsed && (
+                <>
+                  <span style={{ flex: 1, textAlign: "left" }}>Accounts</span>
+                  <span className={`sl-chevron ${acctOpen ? "open" : ""}`}>▶</span>
+                </>
+              )}
+            </button>
+            {!collapsed && (
+              <SubMenu open={acctOpen}>
+                <SubItems>
+                  <NavLink end to={`${base}/accounts`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Customers</span></NavLink>
+                </SubItems>
+              </SubMenu>
+            )}
+          </div>
+        )}
 
-        {/* Settings */}
-        <NavLink
-          to={`${base}/settings`}
-          className="sl-nav-link sl-tip"
-          data-tip="Settings"
-          style={({ isActive }) => navStyle(isActive)}
-        >
-          {({ isActive }) => (
-            <>{isActive && <ActiveBar />}<NavIcon emoji="⚙️" />{!collapsed && <span>Settings</span>}</>
-          )}
-        </NavLink>
+        {/* Reports — only visible to managers and owners */}
+        {canAccessModule(user?.role, "reports") && (
+          <NavLink
+            to={`${base}/reports`}
+            className="sl-nav-link sl-tip"
+            data-tip="Reports"
+            style={({ isActive }) => navStyle(isActive)}
+          >
+            {({ isActive }) => (
+              <>{isActive && <ActiveBar />}<NavIcon emoji="📊" />{!collapsed && <span>Reports</span>}</>
+            )}
+          </NavLink>
+        )}
+
+        {/* Inventory — visible to stock managers and managers */}
+        {canAccessModule(user?.role, "inventory") && (
+          <NavLink
+            to={`${base}/inventory`}
+            className="sl-nav-link sl-tip"
+            data-tip="Inventory"
+            style={({ isActive }) => navStyle(isActive)}
+          >
+            {({ isActive }) => (
+              <>{isActive && <ActiveBar />}<NavIcon emoji="📋" />{!collapsed && <span>Inventory</span>}</>
+            )}
+          </NavLink>
+        )}
+
+        {/* Settings — only visible to managers and owners */}
+        {canAccessModule(user?.role, "settings") && (
+          <NavLink
+            to={`${base}/settings`}
+            className="sl-nav-link sl-tip"
+            data-tip="Settings"
+            style={({ isActive }) => navStyle(isActive)}
+          >
+            {({ isActive }) => (
+              <>{isActive && <ActiveBar />}<NavIcon emoji="⚙️" />{!collapsed && <span>Settings</span>}</>
+            )}
+          </NavLink>
+        )}
+
+        {/* Workers — only visible to managers and owners */}
+        {canAccessModule(user?.role, "workers") && (
+          <NavLink
+            to={`${base}/workers`}
+            className="sl-nav-link sl-tip"
+            data-tip="Workers"
+            style={({ isActive }) => navStyle(isActive)}
+          >
+            {({ isActive }) => (
+              <>{isActive && <ActiveBar />}<NavIcon emoji="👷" />{!collapsed && <span>Workers</span>}</>
+            )}
+          </NavLink>
+        )}
       </nav>
 
       {/* Footer: user info + logout */}

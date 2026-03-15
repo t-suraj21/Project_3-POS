@@ -87,6 +87,7 @@ const Login = () => {
   } = useLogin();
 
   const [showPwd, setShowPwd] = useState(false);
+  const [loginType, setLoginType] = useState("owner"); // "owner" or "worker"
 
   return (
     <>
@@ -150,11 +151,63 @@ const Login = () => {
             <h2 style={{ fontSize: "1.6rem", fontWeight: 800, color: "#111827", margin: "0 0 0.4rem", letterSpacing: "-0.4px" }}>
               Welcome back 👋
             </h2>
-            <p style={{ color: "#6b7280", fontSize: "0.9rem", margin: "0 0 2rem" }}>
+            <p style={{ color: "#6b7280", fontSize: "0.9rem", margin: "0 0 1.5rem" }}>
               Sign in to your POS account
             </p>
 
-            {/* Unverified warning */}
+            {/* Login Type Selector */}
+            <div style={{
+              display: "flex",
+              gap: "0.75rem",
+              marginBottom: "2rem",
+              background: "#f3f4f6",
+              padding: "0.35rem",
+              borderRadius: "8px",
+            }}>
+              <button
+                type="button"
+                onClick={() => setLoginType("owner")}
+                style={{
+                  flex: 1,
+                  padding: "0.65rem 1rem",
+                  border: loginType === "owner" ? "none" : "none",
+                  background: loginType === "owner" ? "linear-gradient(135deg, #4f46e5, #7c3aed)" : "transparent",
+                  color: loginType === "owner" ? "#fff" : "#6b7280",
+                  fontWeight: loginType === "owner" ? 700 : 600,
+                  fontSize: "0.9rem",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+              >
+                👨‍💼 Shop Owner
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginType("worker")}
+                style={{
+                  flex: 1,
+                  padding: "0.65rem 1rem",
+                  border: loginType === "worker" ? "none" : "none",
+                  background: loginType === "worker" ? "linear-gradient(135deg, #4f46e5, #7c3aed)" : "transparent",
+                  color: loginType === "worker" ? "#fff" : "#6b7280",
+                  fontWeight: loginType === "worker" ? 700 : 600,
+                  fontSize: "0.9rem",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+              >
+                👷 Worker
+              </button>
+            </div>
+
+            {/* Helper text */}
+            <p style={{ fontSize: "0.8rem", color: "#9ca3af", marginBottom: "1.5rem" }}>
+              {loginType === "owner" 
+                ? "👨‍💼 Shop owners and managers with account management access"
+                : "👷 Workers with specific role-based permissions"}
+            </p>
             {unverified && (
               <div style={{
                 background: "#fffbeb", border: "1px solid #fcd34d",

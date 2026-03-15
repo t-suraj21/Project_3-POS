@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "./useAuth";
+import { getPrimaryModule, moduleToPath } from "../utils/accessControl";
 
 const useLogin = () => {
   const [form,          setForm]          = useState({ email: "", password: "" });
@@ -14,15 +15,28 @@ const useLogin = () => {
   const { login, user } = useAuth();
   const navigate = useNavigate();
 
-  // Already logged in → skip the login page entirely
+  // Already logged in from a previous session → skip the login page entirely
   useEffect(() => {
     if (!user) return;
-    if (user.role === "superadmin") {
-      navigate("/super/dashboard", { replace: true });
-    } else {
-      navigate(`/shop/${user.shop_id}/dashboard`, { replace: true });
-    }
-  }, [user, navigate]);
+    console.log("[useLogin] User already logged in, redirecting away from login page");
+    
+    // Small delay to prevent navigation conflicts
+    const timer = setTimeout(() => {
+      if (user.role === "superadmin") {
+        navigate("/super/dashboard", { replace: true });
+      } else {
+        // Route workers to their primary allowed module
+        const primaryModule = getPrimaryModule(user.role);
+        const targetPath = primaryModule 
+          ? moduleToPath(primaryModule, user.shop_id)
+          : `/shop/${user.shop_id}/dashboard`;
+        console.log("[useLogin] Redirect from auth context:", targetPath);
+        navigate(targetPath, { replace: true });
+      }
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []); // Empty dependency - only run on mount for existing session
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -38,17 +52,26 @@ const useLogin = () => {
     setLoading(true);
 
     try {
+      console.log("Attempting login with:", form.email);
       const res = await api.post("/api/auth/login", form);
+      console.log("Login successful:", res.data.user);
       login(res.data);
 
       const { role, shop_id } = res.data.user;
       if (role === "superadmin") {
         navigate("/super/dashboard");
       } else {
-        navigate(`/shop/${shop_id}/dashboard`);
+        // Route workers to their primary allowed module
+        const primaryModule = getPrimaryModule(role);
+        const targetPath = primaryModule 
+          ? moduleToPath(primaryModule, shop_id)
+          : `/shop/${shop_id}/dashboard`;
+        console.log("Navigating worker to:", targetPath);
+        navigate(targetPath);
       }
     } catch (err) {
       const data = err.response?.data;
+      console.error("Login failed:", data || err.message);
       if (data?.unverified) {
         setUnverified(true);
         setError(data.message);

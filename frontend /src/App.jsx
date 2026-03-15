@@ -42,6 +42,9 @@ import Orders            from "./pages/shop/Orders";
 import ShopSettings    from "./pages/shop/ShopSettings";
 import Reports         from "./pages/shop/Reports";
 import Inventory       from "./pages/shop/Inventory";
+import WorkersDashboard from "./pages/shop/Workers/Dashboard";
+import AllWorkers      from "./pages/shop/Workers/AllWorkers";
+import AddWorker       from "./pages/shop/Workers/AddWorker";
 import ShopLayout     from "./components/ShopLayout";
 
 /**
@@ -62,12 +65,14 @@ const SmartRedirect = () => {
  * ShopAdminLayout — layout + auth guard for all shop-admin pages
  *
  * Wraps every /shop/:id/* route with:
- *   1. A ProtectedRoute that rejects non-shop_admin callers
- *   2. The ShopLayout sidebar + topbar
+ *   1. The ShopLayout sidebar + topbar
+ *   2. Basic auth check for non-superadmin users
  * <Outlet /> renders the matched child route inside the layout.
+ * 
+ * Individual routes handle module-specific access via ProtectedRoute with module prop.
  */
 const ShopAdminLayout = () => (
-  <ProtectedRoute role="shop_admin">
+  <ProtectedRoute>
     <ShopLayout>
       <Outlet />
     </ShopLayout>
@@ -112,26 +117,30 @@ function App() {
             }
           />
 
-          {/* ── Shop Admin routes (sidebar layout) ───────────────────────── */}
+          {/* ── Shop Admin & Worker routes (sidebar layout) ───────────────────────── */}
           <Route element={<ShopAdminLayout />}>
-            <Route path="/shop/:id/dashboard"              element={<ShopDashboard />} />
-            <Route path="/shop/:id/products"               element={<Products />} />
-            <Route path="/shop/:id/add-product"            element={<AddEditProduct />} />
-            <Route path="/shop/:id/edit-product/:productId" element={<AddEditProduct />} />
-            <Route path="/shop/:id/categories"                      element={<Categories />} />
-            <Route path="/shop/:id/sub-categories"                  element={<SubCategories />} />
-            <Route path="/shop/:id/accounts"                        element={<AccountManagement />} />
-            <Route path="/shop/:id/accounts/:customerId"            element={<CustomerDetail />} />
-            <Route path="/shop/:id/sales"                           element={<Sales />} />
-            <Route path="/shop/:id/billing"                         element={<Billing />} />
-            <Route path="/shop/:id/orders"           element={<Orders filter="all" />} />
-            <Route path="/shop/:id/orders/completed" element={<Orders filter="completed" />} />
-            <Route path="/shop/:id/orders/pending"   element={<Orders filter="pending" />} />
-            <Route path="/shop/:id/orders/refunded"  element={<Orders filter="refunded" />} />
-            <Route path="/shop/:id/reports"           element={<Reports />} />
-            <Route path="/shop/:id/inventory"            element={<Inventory />} />
-            <Route path="/shop/:id/settings"             element={<ShopSettings />} />
-
+            <Route path="/shop/:id/dashboard"              element={<ProtectedRoute module="shop_dashboard"><ShopDashboard /></ProtectedRoute>} />
+            <Route path="/shop/:id/products"               element={<ProtectedRoute module="products"><Products /></ProtectedRoute>} />
+            <Route path="/shop/:id/add-product"            element={<ProtectedRoute module="products"><AddEditProduct /></ProtectedRoute>} />
+            <Route path="/shop/:id/edit-product/:productId" element={<ProtectedRoute module="products"><AddEditProduct /></ProtectedRoute>} />
+            <Route path="/shop/:id/categories"                      element={<ProtectedRoute module="categories"><Categories /></ProtectedRoute>} />
+            <Route path="/shop/:id/sub-categories"                  element={<ProtectedRoute module="categories"><SubCategories /></ProtectedRoute>} />
+            <Route path="/shop/:id/accounts"                        element={<ProtectedRoute module="accounts"><AccountManagement /></ProtectedRoute>} />
+            <Route path="/shop/:id/accounts/:customerId"            element={<ProtectedRoute module="accounts"><CustomerDetail /></ProtectedRoute>} />
+            <Route path="/shop/:id/sales"                           element={<ProtectedRoute module="sales"><Sales /></ProtectedRoute>} />
+            <Route path="/shop/:id/billing"                         element={<ProtectedRoute module="sales"><Billing /></ProtectedRoute>} />
+            <Route path="/shop/:id/orders"           element={<ProtectedRoute module="sales"><Orders filter="all" /></ProtectedRoute>} />
+            <Route path="/shop/:id/orders/completed" element={<ProtectedRoute module="sales"><Orders filter="completed" /></ProtectedRoute>} />
+            <Route path="/shop/:id/orders/pending"   element={<ProtectedRoute module="sales"><Orders filter="pending" /></ProtectedRoute>} />
+            <Route path="/shop/:id/orders/refunded"  element={<ProtectedRoute module="sales"><Orders filter="refunded" /></ProtectedRoute>} />
+            <Route path="/shop/:id/reports"           element={<ProtectedRoute module="reports"><Reports /></ProtectedRoute>} />
+            <Route path="/shop/:id/inventory"            element={<ProtectedRoute module="inventory"><Inventory /></ProtectedRoute>} />
+            <Route path="/shop/:id/settings"             element={<ProtectedRoute module="settings"><ShopSettings /></ProtectedRoute>} />
+            
+            {/* Workers routes - nested */}
+            <Route path="/shop/:id/workers"              element={<ProtectedRoute module="workers"><WorkersDashboard /></ProtectedRoute>} />
+            <Route path="/shop/:id/workers/add"          element={<ProtectedRoute module="workers"><AddWorker /></ProtectedRoute>} />
+            <Route path="/shop/:id/workers/all"          element={<ProtectedRoute module="workers"><AllWorkers /></ProtectedRoute>} />
           </Route>
 
           {/* ── Cashier routes ───────────────────────────────────────────── */}

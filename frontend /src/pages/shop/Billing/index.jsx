@@ -271,25 +271,30 @@ export default function Billing() {
               👤 Customer
             </h3>
 
-            {/* Returning customer dropdown */}
-            {customers.length > 0 && (
+            {/* Returning customer dropdown — Always visible */}
+            <div style={{ marginBottom: "0.75rem" }}>
+              <label style={{ fontSize: "0.75rem", fontWeight: 600, color: C.sub, display: "block", marginBottom: "0.4rem" }}>
+                Existing Customer <span style={{ color: "#9ca3af", fontWeight: 400 }}>(optional)</span>
+              </label>
               <select
                 value={selectedCustomerId}
                 onChange={handleCustomerSelect}
                 style={{
                   width: "100%", padding: "0.5rem 0.7rem", borderRadius: 8,
                   border: `1.5px solid ${C.border}`, background: C.bg, color: C.text,
-                  fontSize: "0.85rem", marginBottom: "0.75rem", cursor: "pointer",
+                  fontSize: "0.85rem", cursor: "pointer",
                 }}
               >
-                <option value="">— Select returning customer (optional) —</option>
+                <option value="">
+                  {customers.length === 0 ? "— No saved customers yet —" : "— Select a customer —"}
+                </option>
                 {customers.map(c => (
                   <option key={c.id} value={String(c.id)}>
-                    {c.name}{c.phone ? ` · ${c.phone}` : ""}
+                    {c.name}{c.phone ? ` · ${c.phone}` : ""} {c.remaining_balance ? `(₹${parseFloat(c.remaining_balance).toFixed(2)})` : ""}
                   </option>
                 ))}
               </select>
-            )}
+            </div>
 
             {/* Editable name */}
             <input
