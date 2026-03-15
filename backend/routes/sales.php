@@ -41,6 +41,18 @@ if (preg_match('#^/api/sales/(\d+)/collect-payment$#', $uri, $m) && $method === 
     exit;
 }
 
+// GET /api/sales/refunds/list
+if ($uri === '/api/sales/refunds/list' && $method === 'GET') {
+    SalesController::getRefunds($user);
+    exit;
+}
+
+// GET /api/sales/:id/refunds
+if (preg_match('#^/api/sales/(\d+)/refunds$#', $uri, $m) && $method === 'GET') {
+    SalesController::getSaleRefunds($user, (int) $m[1]);
+    exit;
+}
+
 // ── Razorpay Online Payment Routes ───────────────────────────────────────────
 
 // POST /api/sales/razorpay/create-order

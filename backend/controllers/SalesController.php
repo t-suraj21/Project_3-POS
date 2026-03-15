@@ -65,13 +65,16 @@ class SalesController
     }
 
     // ─── PUT /api/sales/:id/refund ────────────────────────────────────────────
+    // Supports both full refund and partial refund with items selection
+    // Request body: { items: [{sale_item_id, quantity}, ...], reason, refund_mode }
     public static function refund(array $user, int $id): void
     {
         global $conn;
         $shopId = (int) $user['shop_id'];
+        $data   = json_decode(file_get_contents("php://input"), true) ?? [];
 
-        // Verify sale belongs to shop and is not already refunded
-        $stmt = $conn->prepare("SELECT id, status FROM sales WHERE id = ? AND shop_id = ?");
+        // Verify sale belongs to shop
+        $stmt = $conn->prepare("SELECT id, status, total_amount FROM sales WHERE id = ? AND shop_id = ?");
         $stmt->execute([$id, $shopId]);
         $sale = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -82,30 +85,120 @@ class SalesController
         }
         if ($sale['status'] === 'refunded') {
             http_response_code(422);
-            echo json_encode(["error" => "This sale has already been refunded."]);
+            echo json_encode(["error" => "This sale has already been fully refunded."]);
             return;
         }
 
+        // If partial refund items specified, refund only those
+        $refundItems = $data['items'] ?? null;
+        $reason = trim($data['reason'] ?? '');
+        $refundMode = $data['refund_mode'] ?? 'cash';
+        $refundAmount = 0;
+
         $conn->beginTransaction();
         try {
-            // Restore stock for every item
-            $items = $conn->prepare("SELECT product_id, quantity FROM sale_items WHERE sale_id = ?");
-            $items->execute([$id]);
-            $restore = $conn->prepare(
-                "UPDATE products SET stock = stock + ? WHERE id = ? AND shop_id = ?"
-            );
-            foreach ($items->fetchAll(PDO::FETCH_ASSOC) as $item) {
-                if (!empty($item['product_id'])) {
-                    $restore->execute([(int)$item['quantity'], (int)$item['product_id'], $shopId]);
+            if ($refundItems && is_array($refundItems) && count($refundItems) > 0) {
+                // Partial refund - specific items only
+                $refundAmount = 0;
+                $refundItemsList = [];
+
+                foreach ($refundItems as $item) {
+                    $saleItemId = (int) ($item['sale_item_id'] ?? 0);
+                    $qty = (int) ($item['quantity'] ?? 0);
+                    $itemReason = trim($item['reason'] ?? '');
+
+                    if ($saleItemId <= 0 || $qty <= 0) continue;
+
+                    // Get sale item details
+                    $itemStmt = $conn->prepare("SELECT product_id, quantity, sell_price, total FROM sale_items WHERE id = ? AND sale_id = ?");
+                    $itemStmt->execute([$saleItemId, $id]);
+                    $saleItem = $itemStmt->fetch(PDO::FETCH_ASSOC);
+
+                    if (!$saleItem) continue;
+                    if ($qty > (int)$saleItem['quantity']) $qty = (int)$saleItem['quantity'];
+
+                    $itemRefundAmount = (float)$saleItem['sell_price'] * $qty;
+                    $refundAmount += $itemRefundAmount;
+
+                    // Restore stock only for returned items
+                    if (!empty($saleItem['product_id'])) {
+                        $conn->prepare("UPDATE products SET stock = stock + ? WHERE id = ? AND shop_id = ?")
+                             ->execute([$qty, (int)$saleItem['product_id'], $shopId]);
+                    }
+
+                    $refundItemsList[] = [
+                        'sale_item_id' => $saleItemId,
+                        'product_id' => $saleItem['product_id'],
+                        'quantity' => $qty,
+                        'price' => $saleItem['sell_price'],
+                        'total' => $itemRefundAmount,
+                        'reason' => $itemReason
+                    ];
+                }
+            } else {
+                // Full refund - all items
+                $items = $conn->prepare("SELECT id, product_id, quantity FROM sale_items WHERE sale_id = ?");
+                $items->execute([$id]);
+                $allItems = $items->fetchAll(PDO::FETCH_ASSOC);
+
+                foreach ($allItems as $item) {
+                    if (!empty($item['product_id'])) {
+                        $conn->prepare("UPDATE products SET stock = stock + ? WHERE id = ? AND shop_id = ?")
+                             ->execute([(int)$item['quantity'], (int)$item['product_id'], $shopId]);
+                    }
+                }
+                $refundAmount = (float)$sale['total_amount'];
+            }
+
+            // Create refund record
+            $refundStmt = $conn->prepare("
+                INSERT INTO refunds (shop_id, sale_id, original_total, refund_amount, reason, refund_mode, processed_by, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'completed')
+            ");
+            $refundStmt->execute([
+                $shopId,
+                $id,
+                (float)$sale['total_amount'],
+                $refundAmount,
+                $reason ?: null,
+                in_array($refundMode, ['cash','upi','card','credit']) ? $refundMode : 'cash',
+                (int) ($user['id'] ?? 0) ?: null
+            ]);
+            $refundId = (int) $conn->lastInsertId();
+
+            // Record individual refund items if tracking partial
+            if (!empty($refundItemsList)) {
+                $itemStmt = $conn->prepare("
+                    INSERT INTO refund_items (refund_id, sale_item_id, product_id, product_name, quantity, unit_price, total_price, reason)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                foreach ($refundItemsList as $item) {
+                    $itemStmt->execute([
+                        $refundId,
+                        $item['sale_item_id'],
+                        $item['product_id'],
+                        '', // Will be fetched separately if needed
+                        $item['quantity'],
+                        (float)$item['price'],
+                        (float)$item['total'],
+                        $item['reason'] ?: null
+                    ]);
                 }
             }
 
-            // Mark sale as refunded
-            $conn->prepare("UPDATE sales SET status = 'refunded' WHERE id = ?")
-                 ->execute([$id]);
+            // Update sale with refund status
+            $isPartial = $refundAmount < (float)$sale['total_amount'];
+            $refundStatus = $isPartial ? 'partial' : 'full';
+            $conn->prepare("UPDATE sales SET status = 'refunded', refund_status = ?, refund_id = ?, refunded_at = NOW() WHERE id = ?")
+                 ->execute([$refundStatus, $refundId, $id]);
 
             $conn->commit();
-            echo json_encode(["message" => "Sale refunded successfully. Stock has been restored."]);
+            echo json_encode([
+                "message" => "Refund processed successfully. Stock has been restored.",
+                "refund_id" => $refundId,
+                "refund_amount" => $refundAmount,
+                "refund_status" => $refundStatus
+            ]);
 
         } catch (\Exception $e) {
             $conn->rollBack();
@@ -468,4 +561,83 @@ class SalesController
             echo json_encode(["error" => "Failed to save sale: " . $e->getMessage()]);
         }
     }
+
+    // ─── GET /api/sales/refunds/list ──────────────────────────────────────────
+    // Get all refunds for the shop with details
+    public static function getRefunds(array $user): void
+    {
+        global $conn;
+        $shopId = (int) $user['shop_id'];
+        $limit  = min((int) ($_GET['limit'] ?? 100), 500);
+        $search = trim($_GET['search'] ?? '');
+
+        $where  = ["r.shop_id = ?"];
+        $params = [$shopId];
+
+        if ($search !== '') {
+            $like     = "%{$search}%";
+            $where[]  = "(s.bill_number LIKE ? OR s.customer_name LIKE ?)";
+            array_push($params, $like, $like);
+        }
+
+        $whereSQL = implode(' AND ', $where);
+
+        $stmt = $conn->prepare("
+            SELECT r.id, r.sale_id, r.original_total, r.refund_amount,
+                   r.reason, r.refund_mode, r.status,
+                   s.bill_number, s.customer_name, s.customer_phone,
+                   s.created_at AS sale_date,
+                   r.created_at AS refund_date
+            FROM refunds r
+            LEFT JOIN sales s ON s.id = r.sale_id
+            WHERE {$whereSQL}
+            ORDER BY r.created_at DESC
+            LIMIT {$limit}
+        ");
+        $stmt->execute($params);
+
+        echo json_encode(["refunds" => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+    }
+
+    // ─── GET /api/sales/:id/refunds ───────────────────────────────────────────
+    // Get all refunds for a specific sale with item details
+    public static function getSaleRefunds(array $user, int $saleId): void
+    {
+        global $conn;
+        $shopId = (int) $user['shop_id'];
+
+        // Verify sale belongs to shop
+        $stmt = $conn->prepare("SELECT id FROM sales WHERE id = ? AND shop_id = ?");
+        $stmt->execute([$saleId, $shopId]);
+        if (!$stmt->fetch()) {
+            http_response_code(404);
+            echo json_encode(["error" => "Sale not found"]);
+            return;
+        }
+
+        // Get refunds
+        $refundStmt = $conn->prepare("
+            SELECT id, original_total, refund_amount, reason, refund_mode, status, created_at
+            FROM refunds
+            WHERE sale_id = ? AND shop_id = ?
+            ORDER BY created_at DESC
+        ");
+        $refundStmt->execute([$saleId, $shopId]);
+        $refunds = $refundStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Get refund items for each refund
+        foreach ($refunds as &$refund) {
+            $itemStmt = $conn->prepare("
+                SELECT ri.id, ri.product_id, ri.product_name, ri.quantity, 
+                       ri.unit_price, ri.total_price, ri.reason
+                FROM refund_items ri
+                WHERE ri.refund_id = ?
+            ");
+            $itemStmt->execute([$refund['id']]);
+            $refund['items'] = $itemStmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        echo json_encode(["refunds" => $refunds]);
+    }
 }
+
