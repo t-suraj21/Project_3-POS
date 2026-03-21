@@ -204,7 +204,7 @@ const Login = () => {
 
             {/* Helper text */}
             <p style={{ fontSize: "0.8rem", color: "#9ca3af", marginBottom: "1.5rem" }}>
-              {loginType === "owner" 
+              {loginType === "owner"
                 ? "👨‍💼 Shop owners and managers with account management access"
                 : "👷 Workers with specific role-based permissions"}
             </p>

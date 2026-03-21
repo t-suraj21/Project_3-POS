@@ -19,7 +19,7 @@ const useLogin = () => {
   useEffect(() => {
     if (!user) return;
     console.log("[useLogin] User already logged in, redirecting away from login page");
-    
+
     // Small delay to prevent navigation conflicts
     const timer = setTimeout(() => {
       if (user.role === "superadmin") {
@@ -27,14 +27,14 @@ const useLogin = () => {
       } else {
         // Route workers to their primary allowed module
         const primaryModule = getPrimaryModule(user.role);
-        const targetPath = primaryModule 
+        const targetPath = primaryModule
           ? moduleToPath(primaryModule, user.shop_id)
           : `/shop/${user.shop_id}/dashboard`;
         console.log("[useLogin] Redirect from auth context:", targetPath);
         navigate(targetPath, { replace: true });
       }
     }, 100);
-    
+
     return () => clearTimeout(timer);
   }, []); // Empty dependency - only run on mount for existing session
 
@@ -63,7 +63,7 @@ const useLogin = () => {
       } else {
         // Route workers to their primary allowed module
         const primaryModule = getPrimaryModule(role);
-        const targetPath = primaryModule 
+        const targetPath = primaryModule
           ? moduleToPath(primaryModule, shop_id)
           : `/shop/${shop_id}/dashboard`;
         console.log("Navigating worker to:", targetPath);

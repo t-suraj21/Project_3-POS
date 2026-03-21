@@ -199,7 +199,6 @@ const useSales = () => {
     products, categories, loading,
     search, setSearch,
     categoryId, setCategoryId,
-    // cart
     cart, addToCart, removeFromCart, updateQty, setQtyDirect, clearCart,
     // customer / counter
     customers, selectedCustomerId, setSelectedCustomerId,
@@ -207,11 +206,9 @@ const useSales = () => {
     customerName, setCustomerName,
     customerPhone, setCustomerPhone,
     customerAddress, setCustomerAddress,
-    // order
     couponDiscount, setCouponDiscount,
     extraDiscount, setExtraDiscount,
     note, setNote,
-    // computed
     subtotal, productDiscount, taxTotal,
     couponDiscountAmt, extraDiscountAmt, discountAmt,
     grandTotal,

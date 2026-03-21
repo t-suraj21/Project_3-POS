@@ -144,7 +144,6 @@ const useRefund = () => {
   });
 
   return {
-    // State
     refunds,
     saleRefunds,
     loading,
@@ -154,13 +153,9 @@ const useRefund = () => {
     reason,
     refundMode,
     processing,
-    
-    // Setters
     setRefundType,
     setReason,
     setRefundMode,
-    
-    // Functions
     fetchRefunds,
     fetchSaleRefunds,
     processRefund,

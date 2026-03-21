@@ -146,13 +146,10 @@ export const useAccountManagement = () => {
     search, setSearch, handleSearch,
     onlyPending, handlePending,
     fetchCustomers,
-    // add
     showAddModal, openAddModal, closeAddModal,
     addForm, handleAddFormChange, handleAddCustomer, addSaving, addError,
-    // edit
     editCustomer, editForm, handleEditFormChange, handleUpdateCustomer,
     openEditModal, closeEditModal, editSaving, editError,
-    // delete
     handleDelete,
   };
 };

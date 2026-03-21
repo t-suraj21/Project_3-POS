@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { useAuth } from "./useAuth";
 
 export const INDIA_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
@@ -23,11 +24,13 @@ const EMPTY = {
   country: "India", state: "", pincode: "", gstin: "",
   currency: "INR", currency_symbol: "₹",
   timezone: "Asia/Kolkata", pagination_limit: "20", gst_enabled: "1",
+  billing_layout: "classic",
 };
 
 const useShopSettings = () => {
   const { id: shopId } = useParams();
   const navigate       = useNavigate();
+  const { setShopName } = useAuth();
 
   const [form,          setForm]          = useState(EMPTY);
   const [logoFile,      setLogoFile]      = useState(null);
@@ -45,6 +48,18 @@ const useShopSettings = () => {
   const [deleting, setDeleting] = useState(false);
   const [error,    setError]    = useState(null);
   const [success,  setSuccess]  = useState(null);
+  const [layouts,  setLayouts]  = useState([]);
+
+  // ── Load available billing layouts ────────────────────────────────
+  const fetchLayouts = useCallback(async () => {
+    try {
+      const res = await api.get("/api/billing-layouts");
+      setLayouts(res.data?.layouts || []);
+    } catch (err) {
+      console.error("Failed to load billing layouts:", err);
+      setLayouts([]);
+    }
+  }, []);
 
   // ── Load current settings ─────────────────────────────────────────
   const fetchSettings = useCallback(async () => {
@@ -66,6 +81,7 @@ const useShopSettings = () => {
         timezone:         s.timezone         || "Asia/Kolkata",
         pagination_limit: String(s.pagination_limit ?? 20),
         gst_enabled:      String(s.gst_enabled ?? 1),
+        billing_layout:   s.billing_layout   || "classic",
       });
       if (s.logo)    setExistingLogo(`/${s.logo}`);
       if (s.favicon) setExistingFavicon(`/${s.favicon}`);
@@ -76,7 +92,10 @@ const useShopSettings = () => {
     }
   }, []);
 
-  useEffect(() => { fetchSettings(); }, [fetchSettings]);
+  useEffect(() => {
+    fetchSettings();
+    fetchLayouts();
+  }, [fetchSettings, fetchLayouts]);
 
   // ── Field change ──────────────────────────────────────────────────
   const handleChange = (e) => {
@@ -126,6 +145,11 @@ const useShopSettings = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setSuccess(res.data?.message || "Settings saved.");
+      
+      // Update shop name in context and localStorage
+      localStorage.setItem("shop_name", form.name);
+      setShopName(form.name);
+      
       // Refresh to get updated paths
       fetchSettings();
     } catch (err) {
@@ -144,6 +168,7 @@ const useShopSettings = () => {
       // Clear session and redirect to login
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+      localStorage.removeItem("shop_name");
       navigate("/login");
     } catch (err) {
       setError(err.response?.data?.error || "Deletion failed.");
@@ -156,6 +181,7 @@ const useShopSettings = () => {
     logoPreview, existingLogo, handleLogoChange, handleRemoveLogo,
     faviconPreview, existingFavicon, handleFaviconChange, handleRemoveFavicon,
     loading, saving, deleting, error, success, setError, setSuccess,
+    layouts,
     handleSave, handleDeleteShop,
   };
 };

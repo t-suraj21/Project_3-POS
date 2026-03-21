@@ -31,7 +31,7 @@ export const useWorkers = () => {
       console.log("[useWorkers] Response status:", res.status);
       console.log("[useWorkers] Response data:", res.data);
       console.log("[useWorkers] Raw workers array:", res.data?.workers);
-      
+
       const workersList = res.data?.workers || [];
       console.log("[useWorkers] Setting " + workersList.length + " workers");
       setWorkers(workersList);
@@ -82,10 +82,8 @@ export const useWorkers = () => {
       const res = await api.post("/api/workers", addForm);
       console.log("[useWorkers] Worker created successfully:", res.data);
       console.log("[useWorkers] Response status:", res.status);
-      
-      // Close modal
       closeAddModal();
-      
+
       // Wait a full second for database commit, then refresh
       console.log("[useWorkers] Waiting 1 second before refreshing workers list...");
       setTimeout(() => {
@@ -155,7 +153,6 @@ export const useWorkers = () => {
     loading,
     error,
     fetchWorkers,
-    // Add
     showAddModal,
     openAddModal,
     closeAddModal,
@@ -164,7 +161,6 @@ export const useWorkers = () => {
     handleAddWorker,
     addError,
     addSaving,
-    // Edit
     editWorker,
     editRole,
     setEditRole,
@@ -173,7 +169,6 @@ export const useWorkers = () => {
     handleUpdateRole,
     editError,
     editSaving,
-    // Delete
     handleDelete,
   };
 };

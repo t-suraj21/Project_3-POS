@@ -68,7 +68,7 @@ const SmartRedirect = () => {
  *   1. The ShopLayout sidebar + topbar
  *   2. Basic auth check for non-superadmin users
  * <Outlet /> renders the matched child route inside the layout.
- * 
+ *
  * Individual routes handle module-specific access via ProtectedRoute with module prop.
  */
 const ShopAdminLayout = () => (
@@ -136,7 +136,7 @@ function App() {
             <Route path="/shop/:id/reports"           element={<ProtectedRoute module="reports"><Reports /></ProtectedRoute>} />
             <Route path="/shop/:id/inventory"            element={<ProtectedRoute module="inventory"><Inventory /></ProtectedRoute>} />
             <Route path="/shop/:id/settings"             element={<ProtectedRoute module="settings"><ShopSettings /></ProtectedRoute>} />
-            
+
             {/* Workers routes - nested */}
             <Route path="/shop/:id/workers"              element={<ProtectedRoute module="workers"><WorkersDashboard /></ProtectedRoute>} />
             <Route path="/shop/:id/workers/add"          element={<ProtectedRoute module="workers"><AddWorker /></ProtectedRoute>} />

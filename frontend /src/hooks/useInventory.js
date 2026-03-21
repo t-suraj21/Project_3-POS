@@ -92,12 +92,8 @@ const useInventory = () => {
 
   // ── Categories (used in stock list filter dropdown) ────────────
   const [categories, setCategories] = useState([]);
-
-  // ─────────────────────────────────────────────────────────────
   // Fetch helpers — each wrapped in useCallback so they can be
   // safely listed as dependencies in useEffect without infinite loops
-  // ─────────────────────────────────────────────────────────────
-
   /** Fetch the KPI summary cards. */
   const fetchSummary = useCallback(async () => {
     setSummaryLoading(true);
@@ -181,11 +177,7 @@ const useInventory = () => {
       setProductOptions(res.data?.products || []);
     } catch { setProductOptions([]); }
   }, []);
-
-  // ─────────────────────────────────────────────────────────────
   // Side effects — auto-fetch when filters or active tab change
-  // ─────────────────────────────────────────────────────────────
-
   // Summary always loads (it's shown on every tab)
   useEffect(() => { fetchSummary(); }, [fetchSummary]);
 
@@ -212,11 +204,7 @@ const useInventory = () => {
     const timer = setTimeout(() => searchProducts(productSearch), 350);
     return () => clearTimeout(timer);
   }, [productSearch, searchProducts]);
-
-  // ─────────────────────────────────────────────────────────────
   // Mutation — submit stock update
-  // ─────────────────────────────────────────────────────────────
-
   /**
    * Submit the stock update form.
    * On success we refresh the summary, stock list, and history so
@@ -266,10 +254,7 @@ const useInventory = () => {
     setUpdateError(null);
     setUpdateSuccess(null);
   }, []);
-
-  // ─────────────────────────────────────────────────────────────
   // Expose everything
-  // ─────────────────────────────────────────────────────────────
   return {
     // Tab control
     activeTab, setActiveTab,

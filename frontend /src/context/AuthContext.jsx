@@ -30,18 +30,28 @@ export const AuthProvider = ({ children }) => {
     }
   });
 
+  const [shopName, setShopName] = useState(() => {
+    try {
+      return localStorage.getItem("shop_name") ?? "";
+    } catch {
+      return "";
+    }
+  });
+
   /**
    * Called by the Login page after a successful API response.
    * Persists both the token (for API calls) and the user object
    * (for UI rendering) to localStorage, then updates the React state
    * so every subscriber re-renders with the new session.
    *
-   * @param {object} data  The API response: { token: string, user: object }
+   * @param {object} data  The API response: { token: string, user: object, shop_name: string }
    */
   const login = useCallback((data) => {
     localStorage.setItem("token", data.token);
     localStorage.setItem("user", JSON.stringify(data.user));
+    localStorage.setItem("shop_name", data.shop_name || "");
     setUser(data.user);
+    setShopName(data.shop_name || "");
   }, []);
 
   /**
@@ -53,11 +63,13 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(() => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("shop_name");
     setUser(null);
+    setShopName("");
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, shopName, setShopName }}>
       {children}
     </AuthContext.Provider>
   );

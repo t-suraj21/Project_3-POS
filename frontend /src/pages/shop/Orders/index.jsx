@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import useOrders from "../../../hooks/useOrders";
 import s from "./styles";
 
@@ -29,6 +29,8 @@ export default function Orders({ filter = "all" }) {
     setSearch,
     date,
     setDate,
+    page,
+    setPage,
     detail,
     detailLoading,
     loadDetail,
@@ -44,10 +46,8 @@ export default function Orders({ filter = "all" }) {
     payErr,    payLoading,
   } = useOrders(filter);
 
-  const [page, setPage] = useState(1);
-
   // Reset page when filter / search changes
-  useMemo(() => setPage(1), [filter, search, date]);
+  useMemo(() => setPage(1), [filter, search, date, setPage]);
 
   const title =
     filter === "completed" ? "Completed Orders"

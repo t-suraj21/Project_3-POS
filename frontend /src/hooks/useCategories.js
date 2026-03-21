@@ -178,10 +178,8 @@ export const useCategories = () => {
   const handleSearch = () => { setSearchQ(search); };
 
   return {
-    // table
     categories: paged, totalPages, page, setPage,
     loading, error,
-    // search
     search, setSearch, handleSearch,
     // add form
     form, handleFormChange,
@@ -193,7 +191,6 @@ export const useCategories = () => {
     handleEditFormChange, handleEditImageChange, handleEditRemoveImage,
     openEdit, closeEdit, handleUpdate,
     editSaving, editError,
-    // delete
     handleDelete,
     // status toggle
     handleToggleStatus,

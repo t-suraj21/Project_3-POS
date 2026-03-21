@@ -258,7 +258,6 @@ const useBilling = () => {
     shopId,
     // order data
     cart, counterNumber,
-    // customer
     customers, selectedCustomerId, handleCustomerSelect,
     activeCustomer, setActiveCustomer,
     subtotal, productDiscount, couponDiscountAmt, extraDiscountAmt,
@@ -269,14 +268,10 @@ const useBilling = () => {
     upiRef, setUpiRef,
     cardRef, setCardRef,
     note, setNote,
-    // derived
     paid, change, balanceDue,
-    // checkout
     submitting, checkoutErr,
     handleCheckout, handleOnlineCheckout, rzProcessing,
-    // receipt
     receipt, setReceipt,
-    // nav
     goBackToCart, startNewSale, goToOrders,
   };
 };

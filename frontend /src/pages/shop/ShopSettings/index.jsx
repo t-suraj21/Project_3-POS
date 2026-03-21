@@ -10,6 +10,7 @@ const ShopSettings = () => {
     faviconPreview, existingFavicon,
     handleFaviconChange, handleRemoveFavicon,
     loading, saving, deleting, error, success,
+    layouts,
     handleSave, handleDeleteShop,
   } = useShopSettings();
 
@@ -197,6 +198,72 @@ const ShopSettings = () => {
               <input ref={faviconInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFaviconChange} />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* ── Billing Layout Selection ─────────────────────────────── */}
+      <div style={s.card}>
+        <div style={s.cardHeader}>
+          <p style={s.cardTitle}>📄 Billing Layout</p>
+          <p style={s.cardSubtitle}>Choose how your billing receipts and invoices appear</p>
+        </div>
+        <div style={s.cardBody}>
+          <div style={s.formGrid}>
+            {/* Layout selector */}
+            <div style={s.formGroup}>
+              <label style={s.label}>Select Layout <span style={s.required}>*</span></label>
+              <select
+                style={s.select}
+                value={form.billing_layout ?? "classic"}
+                onChange={(e) => setForm((f) => ({ ...f, billing_layout: e.target.value }))}
+              >
+                {layouts.length > 0 ? (
+                  layouts.map((layout) => (
+                    <option key={layout.code} value={layout.code}>
+                      {layout.name} — {layout.description}
+                    </option>
+                  ))
+                ) : (
+                  <option value="classic">Classic (Default)</option>
+                )}
+              </select>
+            </div>
+          </div>
+
+          {/* Layout descriptions */}
+          {layouts.length > 0 && (
+            <div style={{ marginTop: "1.5rem", paddingTop: "1rem", borderTop: "1px solid #e5e7eb" }}>
+              <p style={{ fontSize: "0.875rem", color: "#6b7280", fontWeight: "600", marginBottom: "0.75rem" }}>
+                Layout Options:
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "1rem" }}>
+                {layouts.map((layout) => (
+                  <div
+                    key={layout.code}
+                    style={{
+                      padding: "1rem",
+                      border: form.billing_layout === layout.code ? "2px solid #3b82f6" : "1px solid #d1d5db",
+                      borderRadius: "0.5rem",
+                      backgroundColor: form.billing_layout === layout.code ? "#eff6ff" : "white",
+                      cursor: "pointer",
+                      transition: "all 200ms",
+                    }}
+                    onClick={() => setForm((f) => ({ ...f, billing_layout: layout.code }))}
+                  >
+                    <p style={{ fontWeight: "600", color: form.billing_layout === layout.code ? "#3b82f6" : "#1f2937", marginBottom: "0.25rem" }}>
+                      {layout.name}
+                    </p>
+                    <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "0.5rem" }}>
+                      {layout.description}
+                    </p>
+                    {form.billing_layout === layout.code && (
+                      <p style={{ fontSize: "0.75rem", color: "#3b82f6", fontWeight: "600" }}>✓ Currently selected</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

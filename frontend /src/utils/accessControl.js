@@ -65,13 +65,13 @@ export const moduleToPath = (module, shopId) => {
  */
 export const getPrimaryModule = (userRole) => {
   const modules = getAccessibleModules(userRole);
-  
+
   // Order of preference for worker types
   if (userRole === "sales_worker") return "sales";
   if (userRole === "account_worker") return "accounts";
   if (userRole === "stock_manager") return "inventory";
   if (userRole === "manager") return "shop_dashboard";
   if (userRole === "shop_admin") return "shop_dashboard";
-  
+
   return modules[0] || null;
 };

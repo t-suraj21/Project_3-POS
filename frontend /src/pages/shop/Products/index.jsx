@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useProducts, IMG_BASE } from "../../../hooks/useProducts";
 import s from "./styles";
@@ -25,17 +25,14 @@ const Products = () => {
     search, setSearch,
     categoryId, setCategoryId,
     lowStock, setLowStock,
+    page, setPage,
+    togglingIds,
     deleteProduct,
     toggleStatus,
   } = useProducts();
 
-  const [page,        setPage]        = useState(1);
-  const [togglingIds, setTogglingIds] = useState(new Set());
-
   const handleToggle = useCallback(async (productId, currentStatus) => {
-    setTogglingIds((prev) => new Set([...prev, productId]));
     await toggleStatus(productId, currentStatus);
-    setTogglingIds((prev) => { const n = new Set(prev); n.delete(productId); return n; });
   }, [toggleStatus]);
 
   // Client-side pagination

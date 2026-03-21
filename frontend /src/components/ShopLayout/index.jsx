@@ -4,7 +4,6 @@ import { useAuth } from "../../hooks/useAuth";
 import { canAccessModule } from "../../utils/accessControl";
 import * as S from "./styles";
 
-// ─── Page metadata map ────────────────────────────────────────────
 const PAGE_META = {
   dashboard:        { title: "Dashboard",         icon: "🏠" },
   "add-product":    { title: "Add Product",        icon: "📦" },
@@ -33,7 +32,6 @@ const getGreeting = () => {
   return "Good evening";
 };
 
-// ─── Dynamic nav style factories (depend on `collapsed` state) ────
 const makeNavLinkStyle = (isActive, collapsed) => ({
   position: "relative",
   display: "flex",
@@ -64,7 +62,6 @@ const makeGroupBtnStyle = (isOpen, collapsed) => ({
   color: isOpen ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.58)",
 });
 
-// ─── Small reusable sub-components ───────────────────────────────
 const ActiveBar = () => <span style={S.activeBar} />;
 
 const SubDot = () => (
@@ -79,15 +76,13 @@ const SubItems = ({ children }) => (
   <div style={S.subMenuInner}>{children}</div>
 );
 
-// ─── Main layout component ────────────────────────────────────────
 const ShopLayout = ({ children }) => {
-  const { id }           = useParams();
-  const { user, logout } = useAuth();
+  const { id }                = useParams();
+  const { user, logout, shopName }  = useAuth();
   const { pathname }     = useLocation();
   const navigate         = useNavigate();
   const base             = `/shop/${id}`;
 
-  // Sidebar group open/close — seeded from current route
   const [ordOpen,  setOrdOpen]  = useState(pathname.includes("/orders"));
   const [prodOpen, setProdOpen] = useState(
     pathname.includes("/products") || pathname.includes("/add-product") || pathname.includes("/edit-product")
@@ -143,7 +138,7 @@ const ShopLayout = ({ children }) => {
             </div>
           )}
         </div>
-        
+
       </div>
 
       {/* Section label */}
@@ -360,8 +355,8 @@ const ShopLayout = ({ children }) => {
           </div>
           {!collapsed && (
             <div style={{ minWidth: 0, flex: 1 }}>
-              <p style={S.userNameText}>{user?.name}</p>
-              <p style={S.userRoleText}>Shop Owner · Online</p>
+              <p style={S.userNameText}>{shopName || "Shop"}</p>
+              <p style={S.userRoleText}>{user?.name || "Owner"} · Online</p>
             </div>
           )}
         </div>

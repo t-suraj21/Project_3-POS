@@ -1,12 +1,11 @@
-import { useEffect, useState } from "react";
-import useRefund from "../../hooks/useRefund";
+import useRefundsList from "../../../hooks/useRefundsList";
 
 /**
  * Refunds Page
  *
  * Shows history of all refunds processed in the shop
  * - Search by bill number or customer
- * - Filter by refund  status
+ * - Filter by refund status
  * - View refund details and items
  */
 
@@ -15,35 +14,19 @@ const Refunds = () => {
     refunds,
     loading,
     error,
+    search,
+    setSearch,
+    selectedRefund,
+    isViewOpen,
+    filteredRefunds,
+    stats,
     fetchRefunds,
-    formatRefund,
-  } = useRefund();
-
-  const [search, setSearch] = useState("");
-  const [selectedRefund, setSelectedRefund] = useState(null);
-  const [isViewOpen, setIsViewOpen] = useState(false);
-
-  useEffect(() => {
-    fetchRefunds();
-  }, []);
-
-  const handleSearch = async () => {
-    if (search.trim()) {
-      // Filter refunds locally with search
-      // Or could fetch with search param
-      await fetchRefunds();
-    }
-  };
-
-  const filteredRefunds = refunds.filter((r) => {
-    if (!search.trim()) return true;
-    const query = search.toLowerCase();
-    return (
-      r.bill_number?.toLowerCase().includes(query) ||
-      r.customer_name?.toLowerCase().includes(query) ||
-      r.customer_phone?.includes(query)
-    );
-  });
+    openRefundDetails,
+    closeRefundDetails,
+    formatCurrency,
+    formatDate,
+    formatTime,
+  } = useRefundsList();
 
   const pageStyle = {
     padding: "20px",
@@ -137,7 +120,7 @@ const Refunds = () => {
     },
   };
 
-  const totalRefunded = refunds.reduce((sum, r) => sum + parseFloat(r.refund_amount || 0), 0);
+  const totalRefunded = stats.totalAmount;
   const totalOriginal = refunds.reduce((sum, r) => sum + parseFloat(r.original_total || 0), 0);
 
   return (
@@ -157,15 +140,15 @@ const Refunds = () => {
       {/* Stats */}
       <div style={statsStyle}>
         <div style={statCardStyle}>
-          <div style={statValueStyle}>{refunds.length}</div>
+          <div style={statValueStyle}>{stats.totalRefunds}</div>
           <div style={statLabelStyle}>Total Refunds</div>
         </div>
         <div style={statCardStyle}>
-          <div style={statValueStyle}>₹{totalRefunded.toFixed(2)}</div>
+          <div style={statValueStyle}>{formatCurrency(stats.totalAmount)}</div>
           <div style={statLabelStyle}>Amount Refunded</div>
         </div>
         <div style={statCardStyle}>
-          <div style={statValueStyle}>₹{totalOriginal.toFixed(2)}</div>
+          <div style={statValueStyle}>{formatCurrency(totalOriginal)}</div>
           <div style={statLabelStyle}>Original Sales</div>
         </div>
         <div style={statCardStyle}>
@@ -183,7 +166,7 @@ const Refunds = () => {
           placeholder="🔍 Search by bill number, customer name, or phone..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+          onKeyPress={(e) => e.key === "Enter" && fetchRefunds()}
           style={{
             flex: 1,
             padding: "12px 15px",
@@ -195,7 +178,7 @@ const Refunds = () => {
           }}
         />
         <button
-          onClick={handleSearch}
+          onClick={fetchRefunds}
           style={{
             padding: "12px 20px",
             background: "#3b82f6",

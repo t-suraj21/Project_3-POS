@@ -13,6 +13,7 @@ const useOrders = (statusFilter = "all") => {
   const [date,     setDate]     = useState("");
   const [detail,   setDetail]   = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [page,     setPage]     = useState(1);
 
   // ── Collect-payment modal state ────────────────────────────────────
   const [payModal, setPayModal] = useState({
@@ -144,6 +145,7 @@ const useOrders = (statusFilter = "all") => {
     orders, total, loading, error,
     search, setSearch,
     date,   setDate,
+    page,   setPage,
     detail, detailLoading, loadDetail, closeDetail,
     refundOrder,
     exportCSV,

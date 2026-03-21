@@ -1,13 +1,9 @@
 import { useState } from "react";
 import useReports from "../../../hooks/useReports";
-// ─────────────────────────────────────────────────────────────────────────────
 const money = (n) =>
   "₹" + Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const num = (n) => Number(n || 0).toLocaleString("en-IN");
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Design tokens
-// ─────────────────────────────────────────────────────────────────────────────
 const T = {
   bg:      "#f0f2f5",
   white:   "#fff",
@@ -21,10 +17,7 @@ const T = {
   blue:    "#2563eb",
   purple:  "#7c3aed",
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Reusable sub-components
-// ─────────────────────────────────────────────────────────────────────────────
 function Card({ children, style }) {
   return (
     <div style={{
@@ -163,10 +156,7 @@ function StockBadge({ stock, alertStock }) {
     </span>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
 // COLLECTION SECTION
-// ─────────────────────────────────────────────────────────────────────────────
 const PERIOD_TABS = [
   { key: "today", label: "📅 Today" },
   { key: "week",  label: "📆 This Week" },
@@ -237,10 +227,7 @@ function CollectionSection({ collection, dailyBar }) {
     </Card>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
 // TOP PRODUCTS SECTION
-// ─────────────────────────────────────────────────────────────────────────────
 function TopProductsSection({ topByQty, topByRevenue }) {
   const [sortBy, setSortBy] = useState("qty");
   const list = sortBy === "qty" ? (topByQty || []) : (topByRevenue || []);
@@ -288,10 +275,7 @@ function TopProductsSection({ topByQty, topByRevenue }) {
     </Card>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
 // LOW STOCK SECTION
-// ─────────────────────────────────────────────────────────────────────────────
 function LowStockSection({ lowStock, outOfStockCount, lowStockCount }) {
   const [filter, setFilter] = useState("all");
   const list = (lowStock || []).filter(p =>
@@ -345,10 +329,7 @@ function LowStockSection({ lowStock, outOfStockCount, lowStockCount }) {
     </Card>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
 // DATE-RANGE REPORT SECTION
-// ─────────────────────────────────────────────────────────────────────────────
 const localToday = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -610,10 +591,7 @@ function DateRangeSection({ drFrom, setDrFrom, drTo, setDrTo, drData, drLoading,
     </Card>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
 // MAIN
-// ─────────────────────────────────────────────────────────────────────────────
 export default function Reports() {
   const {
     data, loading, error, refresh,
@@ -658,7 +636,6 @@ export default function Reports() {
           ↺ Refresh
         </button>
       </div>
-
 
       {/* 1. Custom Date Range Report */}
       <DateRangeSection

@@ -37,6 +37,8 @@ export const useProducts = () => {
   const [search,     setSearch]     = useState(searchParams.get("search")      || "");
   const [categoryId, setCategoryId] = useState(searchParams.get("category_id") || "");
   const [lowStock,   setLowStock]   = useState(searchParams.get("low_stock") === "1");
+  const [page,       setPage]       = useState(1);
+  const [togglingIds, setTogglingIds] = useState(new Set());
 
   // ── Categories (non-critical) ─────────────────────────────────────
   const fetchCategories = useCallback(async () => {
@@ -89,6 +91,7 @@ export const useProducts = () => {
     setProducts((prev) =>
       prev.map((p) => p.id === productId ? { ...p, is_available: newStatus } : p)
     );
+    setTogglingIds((prev) => new Set([...prev, productId]));
     try {
       await api.patch(`/api/products/${productId}/status`, { is_available: newStatus });
     } catch (err) {
@@ -97,6 +100,8 @@ export const useProducts = () => {
         prev.map((p) => p.id === productId ? { ...p, is_available: currentStatus } : p)
       );
       alert(err.response?.data?.error || "Failed to update product status.");
+    } finally {
+      setTogglingIds((prev) => { const n = new Set(prev); n.delete(productId); return n; });
     }
   };
 
@@ -109,6 +114,8 @@ export const useProducts = () => {
     search,     setSearch,
     categoryId, setCategoryId,
     lowStock,   setLowStock,
+    page,       setPage,
+    togglingIds,
     deleteProduct,
     toggleStatus,
     refresh: fetchProducts,  // allows the page to trigger a manual re-fetch

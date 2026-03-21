@@ -49,7 +49,6 @@ export default function useReports() {
   }, []);
 
   return {
-    // summary
     data, loading, error, refresh: fetchSummary,
     // date-range
     drFrom, setDrFrom, drTo, setDrTo,
