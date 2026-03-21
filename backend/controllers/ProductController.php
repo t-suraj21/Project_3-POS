@@ -20,11 +20,6 @@ class ProductController
     // Absolute path to the folder where product images are stored on disk.
     // This is kept as a class constant so every method references the same location.
     private static string $uploadDir = __DIR__ . "/../uploads/products/";
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Private Helpers
-    // ─────────────────────────────────────────────────────────────────────────
-
     /**
      * Delete an uploaded product image from disk.
      *
@@ -92,7 +87,7 @@ class ProductController
      * Check if the user has write permission for products.
      * Only shop_admin, manager, and stock_manager can create/update/delete/toggle products.
      * Sales workers and cashiers are read-only.
-     * 
+     *
      * @param array $user Decoded JWT payload with 'role' key
      * @return void Exits with 403 if unauthorized
      */
@@ -105,10 +100,7 @@ class ProductController
             exit;
         }
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
     // GET /api/products
-    // ─────────────────────────────────────────────────────────────────────────
     /**
      * Return the full product list for the authenticated shop.
      *
@@ -170,10 +162,7 @@ class ProductController
 
         echo json_encode(["products" => $products]);
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
     // GET /api/products/:id
-    // ─────────────────────────────────────────────────────────────────────────
     /**
      * Return a single product by its ID.
      *
@@ -202,10 +191,7 @@ class ProductController
 
         echo json_encode(["product" => $product]);
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
     // POST /api/products
-    // ─────────────────────────────────────────────────────────────────────────
     /**
      * Create a brand-new product for the shop.
      *
@@ -222,7 +208,6 @@ class ProductController
      */
     public static function create(array $user): void
     {
-        // Check write permission
         self::requireWritePermission($user);
 
         global $conn;
@@ -266,8 +251,6 @@ class ProductController
         ]);
 
         $newId = (int) $conn->lastInsertId();
-
-        // Return the created product
         $s2 = $conn->prepare("SELECT * FROM products WHERE id = ?");
         $s2->execute([$newId]);
 
@@ -277,10 +260,7 @@ class ProductController
             "product" => $s2->fetch(PDO::FETCH_ASSOC),
         ]);
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
     // PUT /api/products/:id
-    // ─────────────────────────────────────────────────────────────────────────
     /**
      * Update an existing product.
      *
@@ -295,7 +275,6 @@ class ProductController
      */
     public static function update(array $user, int $id): void
     {
-        // Check write permission
         self::requireWritePermission($user);
 
         global $conn;
@@ -309,8 +288,6 @@ class ProductController
             echo json_encode(["error" => "name and sell_price are required"]);
             return;
         }
-
-        // Check ownership and get old image
         $old = $conn->prepare("SELECT image FROM products WHERE id = ? AND shop_id = ?");
         $old->execute([$id, $shopId]);
         $existing = $old->fetch(PDO::FETCH_ASSOC);
@@ -319,14 +296,11 @@ class ProductController
             echo json_encode(["error" => "Product not found"]);
             return;
         }
-
-        // Handle new image upload
         $imagePath = $existing['image'];
         if ($isMultipart && !empty($_FILES['image']['tmp_name'])) {
             self::deleteImage($existing['image']);
             $imagePath = self::handleUpload();
         }
-        // Allow explicit image removal
         if (isset($data['remove_image']) && $data['remove_image'] === '1') {
             self::deleteImage($existing['image']);
             $imagePath = null;
@@ -371,10 +345,7 @@ class ProductController
 
         echo json_encode(["message" => "Product updated"]);
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
     // PATCH /api/products/:id/status
-    // ─────────────────────────────────────────────────────────────────────────
     /**
      * Toggle or explicitly set the "is_available" flag on a product.
      *
@@ -393,14 +364,11 @@ class ProductController
      */
     public static function toggleStatus(array $user, int $id): void
     {
-        // Check write permission
         self::requireWritePermission($user);
 
         global $conn;
 
         $shopId = (int) $user['shop_id'];
-
-        // Verify ownership
         $chk = $conn->prepare("SELECT id, is_available FROM products WHERE id = ? AND shop_id = ?");
         $chk->execute([$id, $shopId]);
         $row = $chk->fetch(PDO::FETCH_ASSOC);
@@ -412,7 +380,6 @@ class ProductController
         }
 
         $body      = json_decode(file_get_contents("php://input"), true) ?? [];
-        // Accept explicit value or flip current value
         $newStatus = isset($body['is_available'])
             ? ((int) $body['is_available'] ? 1 : 0)
             : ((int) $row['is_available'] ? 0 : 1);
@@ -425,10 +392,7 @@ class ProductController
             "is_available" => $newStatus,
         ]);
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
     // DELETE /api/products/:id
-    // ─────────────────────────────────────────────────────────────────────────
     /**
      * Permanently delete a product.
      *
@@ -442,7 +406,6 @@ class ProductController
      */
     public static function delete(array $user, int $id): void
     {
-        // Check write permission
         self::requireWritePermission($user);
 
         global $conn;

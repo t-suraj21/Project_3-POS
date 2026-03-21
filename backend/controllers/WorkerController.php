@@ -24,7 +24,7 @@ class WorkerController
 
             $workers = $stmt->fetchAll(PDO::FETCH_ASSOC);
             error_log("[WorkerController::getAll] Found " . count($workers) . " workers");
-            
+
             if (count($workers) > 0) {
                 error_log("[WorkerController::getAll] Sample worker: " . json_encode($workers[0]));
             }
@@ -48,8 +48,6 @@ class WorkerController
         $email    = trim($data['email'] ?? '');
         $password = (string) ($data['password'] ?? '');
         $role     = trim($data['role'] ?? '');
-
-        // Debug logging
         error_log("[WorkerController::create] ========== STARTING WORKER CREATION ==========");
         error_log("[WorkerController::create] User ID: " . $user['id'] . ", User Role: " . $user['role']);
         error_log("[WorkerController::create] Shop ID: $shopId");
@@ -96,11 +94,11 @@ class WorkerController
                 "INSERT INTO users (shop_id, name, email, password, role, is_verified)
                  VALUES (?, ?, ?, ?, ?, ?)"
             );
-            
+
             $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
             error_log("[WorkerController::create] Password hashed. About to execute INSERT...");
             error_log("[WorkerController::create] Parameters: shopId=$shopId, name=$name, email=$email, role=$role, is_verified=1");
-            
+
             $success = $stmt->execute([
                 $shopId,
                 $name,

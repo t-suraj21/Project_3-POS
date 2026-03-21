@@ -36,8 +36,6 @@ class ShopDashboardController
         $stmt = $conn->prepare("SELECT COUNT(*) FROM credit_customers WHERE shop_id = ?");
         $stmt->execute([$shopId]);
         $creditCustomers = (int) $stmt->fetchColumn();
-
-        // Outstanding credit balance owed by customers
         $stmt = $conn->prepare("SELECT COALESCE(SUM(remaining_balance), 0) FROM credit_customers WHERE shop_id = ?");
         $stmt->execute([$shopId]);
         $outstandingCredit = (float) $stmt->fetchColumn();
@@ -146,13 +144,11 @@ class ShopDashboardController
         $recentSales = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         echo json_encode([
-            // overview
             "total_products"    => $totalProducts,
             "total_categories"  => $totalCategories,
             "total_customers"   => $totalCustomers,
             "credit_customers"  => $creditCustomers,
             "low_stock"         => $lowStockCount,
-            // business summary
             "sales_all_time"    => $salesAllTime,
             "refunded_count"    => $refundedCount,
             "pending_count"     => $pendingCount,
@@ -167,7 +163,6 @@ class ShopDashboardController
             "revenue_week"      => $revenueWeek,
             "revenue_month"     => $revenueMonth,
             "revenue_year"      => $revenueYear,
-            // breakdowns
             "payment_breakdown" => $paymentBreakdown,
             "top_products"      => $topProducts,
             "low_stock_items"   => $lowStockItems,

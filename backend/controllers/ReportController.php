@@ -61,8 +61,6 @@ class ReportController
             ");
             $stmt->execute([$shopId]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            // cast to proper types
             $collection[$key] = [
                 'total_orders'      => (int)   $row['total_orders'],
                 'total_revenue'     => (float) $row['total_revenue'],
@@ -98,8 +96,6 @@ class ReportController
         ");
         $stmt->execute([$shopId]);
         $dailyBarRaw = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // fill all days of current month
         $daysInMonth = (int) date('t');
         $dailyBar = [];
         $dayMap = [];
@@ -139,8 +135,6 @@ class ReportController
         ");
         $stmt->execute([$shopId, $shopId]);
         $topByQty = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // cast
         $topByQty = array_map(function ($r) {
             return [
                 'id'            => (int)   $r['id'],
@@ -206,7 +200,6 @@ class ReportController
         $lowStockCount = (int) $stmt->fetchColumn();
 
         // ════════════════════════════════════════════════════════════════
-        // Response
         // ════════════════════════════════════════════════════════════════
         echo json_encode([
             'collection'       => $collection,

@@ -77,8 +77,6 @@ class ShopSettingsController
             echo json_encode(["error" => "Shop name is required."]);
             return;
         }
-
-        // Fetch current shop for old images
         $old = $conn->prepare("SELECT logo, favicon FROM shops WHERE id = ?");
         $old->execute([$shopId]);
         $current = $old->fetch(PDO::FETCH_ASSOC);
@@ -87,8 +85,6 @@ class ShopSettingsController
             echo json_encode(["error" => "Shop not found."]);
             return;
         }
-
-        // Handle logo upload
         $logo = $current['logo'];
         if (!empty($_FILES['logo']['tmp_name'])) {
             self::deleteFile($current['logo']);
@@ -98,8 +94,6 @@ class ShopSettingsController
             self::deleteFile($current['logo']);
             $logo = null;
         }
-
-        // Handle favicon upload
         $favicon = $current['favicon'];
         if (!empty($_FILES['favicon']['tmp_name'])) {
             self::deleteFile($current['favicon']);
@@ -134,7 +128,8 @@ class ShopSettingsController
                 pagination_limit = ?,
                 gst_enabled      = ?,
                 logo             = ?,
-                favicon          = ?
+                favicon          = ?,
+                billing_layout   = ?
             WHERE id = ?
         ");
         $stmt->execute([
@@ -153,15 +148,31 @@ class ShopSettingsController
             isset($data['gst_enabled']) && $data['gst_enabled'] === '1' ? 1 : 0,
             $logo,
             $favicon,
+            trim($data['billing_layout'] ?? 'classic'),
             $shopId,
         ]);
-
-        // Return updated shop
         $s2 = $conn->prepare("SELECT * FROM shops WHERE id = ?");
         $s2->execute([$shopId]);
         $shop = $s2->fetch(PDO::FETCH_ASSOC);
 
         echo json_encode(["message" => "Shop settings saved successfully.", "shop" => $shop]);
+    }
+
+    // ── GET /api/billing-layouts  (No auth required, public) ──────────────────
+    public static function getBillingLayouts(): void
+    {
+        global $conn;
+
+        $stmt = $conn->prepare("
+            SELECT id, name, code, description, is_active
+            FROM billing_layouts
+            WHERE is_active = 1
+            ORDER BY id ASC
+        ");
+        $stmt->execute();
+        $layouts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode(["layouts" => $layouts]);
     }
 
     // ── DELETE /api/settings ──────────────────────────────────────────────────
@@ -176,15 +187,12 @@ class ShopSettingsController
             echo json_encode(["error" => "Send { \"confirm\": \"DELETE\" } to confirm shop deletion."]);
             return;
         }
-
-        // Get images to remove
         $shop = $conn->prepare("SELECT logo, favicon FROM shops WHERE id = ?");
         $shop->execute([$shopId]);
         $s = $shop->fetch(PDO::FETCH_ASSOC);
 
         $conn->beginTransaction();
         try {
-            // Delete in dependency order
             $tables = [
                 "credit_transaction_items" => "transaction_id IN (SELECT id FROM credit_transactions WHERE shop_id = ?)",
                 "credit_transactions"      => "shop_id = ?",
@@ -201,8 +209,6 @@ class ShopSettingsController
                 $conn->prepare("DELETE FROM `{$table}` WHERE {$where}")->execute([$shopId]);
             }
             $conn->commit();
-
-            // Remove uploaded files
             if ($s) {
                 self::deleteFile($s['logo']);
                 self::deleteFile($s['favicon']);

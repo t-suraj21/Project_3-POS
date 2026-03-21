@@ -70,7 +70,6 @@ class Mailer
         }
     }
 
-
     /**
      * Send a 6-digit OTP verification email.
      *
@@ -91,7 +90,6 @@ class Mailer
         return self::send($toEmail, $ownerName, $subject, $html);
     }
 
-
     /**
      * Send a password-reset link email.
      *
@@ -109,7 +107,6 @@ class Mailer
         $html    = self::passwordResetTemplate($ownerName, $resetUrl);
         return self::send($toEmail, $ownerName, $subject, $html);
     }
-
 
     // ── Private: Password-reset email template ────────────────────────────────
     private static function passwordResetTemplate(
@@ -197,7 +194,6 @@ class Mailer
 </html>
 HTML;
     }
-
 
     // ── Private: OTP email template ───────────────────────────────────────────
     private static function otpTemplate(

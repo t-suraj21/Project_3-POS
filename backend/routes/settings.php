@@ -7,6 +7,13 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'OPTIONS') { http_response_code(204); exit; }
 
+// GET /api/billing-layouts (no auth required - public endpoint)
+if ($uri === '/api/billing-layouts' && $method === 'GET') {
+    ShopSettingsController::getBillingLayouts();
+    exit;
+}
+
+// All other endpoints require authentication
 $user = verifyModuleAccess('settings');
 
 // GET /api/settings

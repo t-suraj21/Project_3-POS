@@ -103,7 +103,6 @@ class AuthController
         }
     }
 
-
     // ─── POST /api/auth/verify-otp ────────────────────────────────────────────
     public static function verifyOtp(): void
     {
@@ -136,8 +135,6 @@ class AuthController
             echo json_encode(["message" => "Your account is already verified. You can sign in."]);
             return;
         }
-
-        // Check expiry
         if ($user['token_expires_at'] && strtotime($user['token_expires_at']) < time()) {
             http_response_code(410);
             echo json_encode([
@@ -146,8 +143,6 @@ class AuthController
             ]);
             return;
         }
-
-        // Check OTP value
         if ($user['verification_token'] !== $otp) {
             http_response_code(400);
             echo json_encode(["message" => "Incorrect OTP. Please check and try again."]);
@@ -165,7 +160,6 @@ class AuthController
         http_response_code(200);
         echo json_encode(["message" => "Email verified successfully! You can now sign in."]);
     }
-
 
     // ─── POST /api/auth/resend-verification ───────────────────────────────────
     public static function resendVerification(): void
@@ -212,7 +206,6 @@ class AuthController
         echo json_encode(["message" => $generic]);
     }
 
-
     // ─── POST /api/auth/login ─────────────────────────────────────────────────
     public static function login(): void
     {
@@ -246,6 +239,17 @@ class AuthController
             return;
         }
 
+        // ── Fetch shop name ───────────────────────────────────────────────
+        $shopName = "";
+        if (!empty($user['shop_id'])) {
+            $shopStmt = $conn->prepare("SELECT name FROM shops WHERE id = ?");
+            $shopStmt->execute([$user['shop_id']]);
+            $shop = $shopStmt->fetch();
+            if ($shop) {
+                $shopName = $shop['name'];
+            }
+        }
+
         $token = generateJWT($user);
         unset($user['password']);
 
@@ -254,9 +258,9 @@ class AuthController
             "message" => "Login successful",
             "token"   => $token,
             "user"    => $user,
+            "shop_name" => $shopName,
         ]);
     }
-
 
     // ─── GET /api/auth/me ─────────────────────────────────────────────────────
     public static function me(): void
@@ -280,7 +284,6 @@ class AuthController
 
         echo json_encode(["user" => $user]);
     }
-
 
     // ─── private: resend OTP when unverified account re-registers ────────────
     private static function resendOtpForExistingUser(int $userId, object $data): void
@@ -312,7 +315,6 @@ class AuthController
         ]);
     }
 
-
     // ─── POST /api/auth/forgot-password ──────────────────────────────────────
     public static function forgotPassword(): void
     {
@@ -326,8 +328,6 @@ class AuthController
             echo json_encode(["message" => "A valid email address is required."]);
             return;
         }
-
-        // Always return same generic message to prevent email enumeration
         $generic = "If that email is registered, a password reset link has been sent.";
 
         $stmt = $conn->prepare("SELECT id, name, is_verified FROM users WHERE email = ?");
@@ -358,7 +358,6 @@ class AuthController
         http_response_code(200);
         echo json_encode(["message" => $generic]);
     }
-
 
     // ─── POST /api/auth/reset-password ───────────────────────────────────────
     public static function resetPassword(): void

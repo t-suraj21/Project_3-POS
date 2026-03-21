@@ -18,9 +18,7 @@ require_once __DIR__ . "/../config/database.php";
 
 class InventoryController
 {
-    // ─────────────────────────────────────────────────────────────────────────
     // GET /api/inventory/summary
-    // ─────────────────────────────────────────────────────────────────────────
     /**
      * Return high-level KPI numbers for the inventory dashboard cards.
      *
@@ -50,8 +48,6 @@ class InventoryController
         ");
         $stmt->execute([$shopId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        // Cast numeric strings to actual numbers so JSON looks clean
         echo json_encode([
             "total_products"    => (int)   $row['total_products'],
             "total_stock_units" => (int)   $row['total_stock_units'],
@@ -61,10 +57,7 @@ class InventoryController
             "retail_value"      => (float) $row['retail_value'],
         ]);
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
     // GET /api/inventory/stock
-    // ─────────────────────────────────────────────────────────────────────────
     /**
      * Return the complete stock list for the authenticated shop.
      *
@@ -137,8 +130,6 @@ class InventoryController
         ");
         $stmt->execute($params);
         $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Cast numeric fields so JSON is clean
         foreach ($products as &$p) {
             $p['stock']       = (int)   $p['stock'];
             $p['alert_stock'] = (int)   $p['alert_stock'];
@@ -151,10 +142,7 @@ class InventoryController
 
         echo json_encode(["products" => $products, "total" => count($products)]);
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
     // GET /api/inventory/low-stock
-    // ─────────────────────────────────────────────────────────────────────────
     /**
      * Return only products that are at or below their alert stock level.
      *
@@ -198,10 +186,7 @@ class InventoryController
 
         echo json_encode(["products" => $products, "total" => count($products)]);
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
     // POST /api/inventory/stock/:id
-    // ─────────────────────────────────────────────────────────────────────────
     /**
      * Update the stock level for a single product and record the change in
      * the stock_history table so the shop owner has a full audit trail.
@@ -222,8 +207,6 @@ class InventoryController
         $shopId = (int) $user['shop_id'];
         // JWT payload stores the user id under the key "id" (see utils/jwt.php)
         $userId = (int) ($user['id'] ?? 0);
-
-        // Verify the product belongs to this shop
         $check = $conn->prepare("SELECT id, name, stock FROM products WHERE id = ? AND shop_id = ?");
         $check->execute([$productId, $shopId]);
         $product = $check->fetch(PDO::FETCH_ASSOC);
@@ -235,8 +218,6 @@ class InventoryController
         }
 
         $body = json_decode(file_get_contents("php://input"), true) ?? [];
-
-        // Validate required fields
         if (!isset($body['quantity']) || !is_numeric($body['quantity'])) {
             http_response_code(422);
             echo json_encode(["error" => "quantity is required and must be a number"]);
@@ -261,8 +242,6 @@ class InventoryController
             ]);
             return;
         }
-
-        // Begin a transaction so both updates succeed or both fail together
         $conn->beginTransaction();
         try {
             // 1. Update the product's stock level
@@ -296,10 +275,7 @@ class InventoryController
             echo json_encode(["error" => "Failed to update stock. Please try again."]);
         }
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
     // GET /api/inventory/history
-    // ─────────────────────────────────────────────────────────────────────────
     /**
      * Return the stock change history for the shop.
      *

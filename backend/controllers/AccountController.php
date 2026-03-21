@@ -11,7 +11,7 @@ class AccountController
      * Check if the user has write permission for accounts.
      * Only shop_admin and manager can create/update/delete customers.
      * Account workers can see customers read-only. Sales workers can see for reference.
-     * 
+     *
      * @param array $user Decoded JWT payload with 'role' key
      * @return void Exits with 403 if unauthorized
      */
@@ -69,8 +69,6 @@ class AccountController
         global $conn;
 
         $shopId = (int) $user['shop_id'];
-
-        // Customer row
         $stmt = $conn->prepare("
             SELECT id, name, phone, address,
                    total_credit, total_paid, remaining_balance, status, created_at
@@ -85,8 +83,6 @@ class AccountController
             echo json_encode(["error" => "Customer not found"]);
             return;
         }
-
-        // Transactions
         $tStmt = $conn->prepare("
             SELECT id, bill_number, total_amount, paid_amount, remaining_amount, note, created_at
             FROM   credit_transactions
@@ -95,8 +91,6 @@ class AccountController
         ");
         $tStmt->execute([$id, $shopId]);
         $transactions = $tStmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Items for each transaction
         foreach ($transactions as &$txn) {
             $iStmt = $conn->prepare("
                 SELECT product_name, quantity, price, total
@@ -108,8 +102,6 @@ class AccountController
             $txn['items'] = $iStmt->fetchAll(PDO::FETCH_ASSOC);
         }
         unset($txn);
-
-        // Payment history
         $pStmt = $conn->prepare("
             SELECT id, amount, payment_mode, note, created_at
             FROM   credit_payments
@@ -130,7 +122,6 @@ class AccountController
     // Create a new credit customer.
     public static function createCustomer(array $user): void
     {
-        // Check write permission
         self::requireWritePermission($user);
 
         global $conn;
@@ -143,8 +134,6 @@ class AccountController
             echo json_encode(["error" => "Name and phone are required"]);
             return;
         }
-
-        // Prevent duplicate phone in same shop
         $dup = $conn->prepare("SELECT id FROM credit_customers WHERE phone = ? AND shop_id = ?");
         $dup->execute([trim($data['phone']), $shopId]);
         if ($dup->fetch()) {
@@ -176,7 +165,6 @@ class AccountController
     // Update customer details (name, phone, address).
     public static function updateCustomer(array $user, int $id): void
     {
-        // Check write permission
         self::requireWritePermission($user);
 
         global $conn;
@@ -215,7 +203,6 @@ class AccountController
     // ─── DELETE /api/accounts/customers/:id ──────────────────────────────────
     public static function deleteCustomer(array $user, int $id): void
     {
-        // Check write permission
         self::requireWritePermission($user);
 
         global $conn;
@@ -266,8 +253,6 @@ class AccountController
         $paidAmount   = (float) ($data['paid_amount'] ?? 0);
         $remaining    = $totalAmount - $paidAmount;
         $billNumber   = $data['bill_number'] ?? ('BILL-' . strtoupper(uniqid()));
-
-        // Verify customer belongs to this shop
         $chk = $conn->prepare("SELECT id FROM credit_customers WHERE id = ? AND shop_id = ?");
         $chk->execute([$customerId, $shopId]);
         if (!$chk->fetch()) {
@@ -278,7 +263,6 @@ class AccountController
 
         $conn->beginTransaction();
         try {
-            // Insert transaction
             $tStmt = $conn->prepare("
                 INSERT INTO credit_transactions
                        (shop_id, customer_id, bill_number, total_amount, paid_amount, remaining_amount, note)
@@ -290,8 +274,6 @@ class AccountController
                 $data['note'] ?? null,
             ]);
             $transactionId = (int) $conn->lastInsertId();
-
-            // Insert items
             if (!empty($data['items']) && is_array($data['items'])) {
                 $iStmt = $conn->prepare("
                     INSERT INTO credit_transaction_items
@@ -354,7 +336,6 @@ class AccountController
     // Body: { customer_id, amount, payment_mode, note }
     public static function addPayment(array $user): void
     {
-        // Check write permission for payment recording
         self::requireWritePermission($user);
 
         global $conn;
@@ -378,8 +359,6 @@ class AccountController
             echo json_encode(["error" => "Payment amount must be greater than 0"]);
             return;
         }
-
-        // Validate customer
         $chk = $conn->prepare("
             SELECT id, remaining_balance FROM credit_customers
             WHERE id = ? AND shop_id = ?
@@ -401,7 +380,6 @@ class AccountController
 
         $conn->beginTransaction();
         try {
-            // Insert payment record
             $conn->prepare("
                 INSERT INTO credit_payments (shop_id, customer_id, amount, payment_mode, note)
                 VALUES (?, ?, ?, ?, ?)

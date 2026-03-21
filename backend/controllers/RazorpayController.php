@@ -319,7 +319,6 @@ class RazorpayController
                         WHERE id = ? AND shop_id = ?
                     ")->execute([$total, $total, $custId, $shopId]);
                 } else {
-                    // Upsert customer
                     if ($custPhone !== '') {
                         $cStmt = $conn->prepare("SELECT id FROM credit_customers WHERE shop_id = ? AND phone = ?");
                         $cStmt->execute([$shopId, $custPhone]);
@@ -350,8 +349,6 @@ class RazorpayController
 
                 $conn->prepare("UPDATE sales SET customer_id = ? WHERE id = ?")
                      ->execute([$custId, $saleId]);
-
-                // Credit transaction record
                 $conn->prepare("
                     INSERT INTO credit_transactions
                         (shop_id, customer_id, bill_number, total_amount, paid_amount, remaining_amount, note)
@@ -361,8 +358,6 @@ class RazorpayController
                     "Online payment via Razorpay | ID: {$rzPaymentId}",
                 ]);
                 $ctId = (int)$conn->lastInsertId();
-
-                // Transaction items
                 $saleItems = $conn->prepare("SELECT * FROM sale_items WHERE sale_id = ?");
                 $saleItems->execute([$saleId]);
                 $ctiStmt = $conn->prepare("
