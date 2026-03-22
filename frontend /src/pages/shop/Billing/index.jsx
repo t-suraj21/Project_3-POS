@@ -212,7 +212,7 @@ const ReceiptModal = ({ receipt, shop, billingLayout, onNewSale, goToOrders }) =
               ` : ""}
               ${receipt.taxTotal > 0 ? `
                 <div class="total-row">
-                  <span>Tax:</span>
+                  <span>GST:</span>
                   <span>₹${parseFloat(receipt.taxTotal || 0).toFixed(2)}</span>
                 </div>
               ` : ""}
@@ -453,7 +453,7 @@ export default function Billing() {
             {[
               { label: "Subtotal",         value: subtotal,       color: C.sub },
               discountAmt > 0 && { label: "Discount",    value: -discountAmt,  color: C.green, prefix: "−" },
-              taxTotal > 0    && { label: "Tax",          value: taxTotal,      color: C.sub },
+              taxTotal > 0    && { label: "GST",          value: taxTotal,      color: C.sub },
             ].filter(Boolean).map(({ label, value, color, prefix = "" }, i) => (
               <div key={i} style={billSummaryRow}>
                 <span style={billSummaryLabel}>{label}</span>

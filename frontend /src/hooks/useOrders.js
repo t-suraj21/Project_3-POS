@@ -120,7 +120,7 @@ const useOrders = (statusFilter = "all") => {
   // ── CSV Export ─────────────────────────────────────────────────────
   const exportCSV = () => {
     if (orders.length === 0) return;
-    const headers = ["Order ID","Date","Customer","Items","Order Amount","Discount","Tax","Total","Paid By","Status"];
+    const headers = ["Order ID","Date","Customer","Items","Order Amount","Discount","GST","Total","Paid By","Status"];
     const rows = orders.map(o => [
       o.bill_number,
       new Date(o.created_at).toLocaleString(),

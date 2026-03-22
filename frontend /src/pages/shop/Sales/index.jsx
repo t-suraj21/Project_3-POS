@@ -357,7 +357,7 @@ const Sales = () => {
                 </div>
 
                 <div style={s.totalsRow}>
-                  <span>Tax :</span>
+                  <span>GST :</span>
                   <span>{fmt2(taxTotal)}</span>
                 </div>
 

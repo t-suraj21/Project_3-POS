@@ -69,7 +69,7 @@ const ProfessionalLayout = ({ sale, shop }) => {
               <th className="px-4 py-3 text-left font-bold">Description</th>
               <th className="px-4 py-3 text-right font-bold">Qty</th>
               <th className="px-4 py-3 text-right font-bold">Unit Price</th>
-              {shop?.gst_enabled && <th className="px-4 py-3 text-right font-bold">Tax</th>}
+              {shop?.gst_enabled && <th className="px-4 py-3 text-right font-bold">GST</th>}
               <th className="px-4 py-3 text-right font-bold">Amount</th>
             </tr>
           </thead>
@@ -107,7 +107,7 @@ const ProfessionalLayout = ({ sale, shop }) => {
           )}
           {sale?.gst_amount > 0 && (
             <div className="flex justify-between text-sm mb-2 border-b border-gray-200 pb-2">
-              <span className="text-gray-700">Tax:</span>
+              <span className="text-gray-700">GST:</span>
               <span className="font-semibold">{formatCurrency(sale?.gst_amount)}</span>
             </div>
           )}

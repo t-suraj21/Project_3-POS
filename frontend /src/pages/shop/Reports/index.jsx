@@ -457,7 +457,7 @@ function DateRangeSection({ drFrom, setDrFrom, drTo, setDrTo, drData, drLoading,
             <MetricCard label="Balance Due"     value={money(s.total_balance)}  icon="⏳" accent={T.amber}
               sub={`${num(s.pending_orders)} pending`} />
             <MetricCard label="Discount Given"  value={money(s.total_discount)} icon="🏷️" accent={T.purple} />
-            <MetricCard label="Tax Collected"   value={money(s.total_tax)}      icon="📋" accent={T.sub} />
+            <MetricCard label="GST Collected"   value={money(s.total_tax)}      icon="📋" accent={T.sub} />
           </div>
 
           {/* Payment mode cards */}

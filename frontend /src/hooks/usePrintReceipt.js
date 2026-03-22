@@ -126,7 +126,7 @@ export const usePrintReceipt = () => {
                 receipt.taxTotal > 0
                   ? `
                 <div class="total-row">
-                  <span>Tax:</span>
+                  <span>GST:</span>
                   <span>₹${parseFloat(receipt.taxTotal || 0).toFixed(2)}</span>
                 </div>
               `

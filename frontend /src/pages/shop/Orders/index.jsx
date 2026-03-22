@@ -121,7 +121,7 @@ export default function Orders({ filter = "all" }) {
             <thead style={s.thead}>
               <tr>
                 {["SL", "Order ID", "Order Date", "Customer Info", "Counter Info",
-                  "Items", "Order Amount", "Discount", "Vat / Tax", "Total Amount",
+                  "Items", "Order Amount", "Discount", "GST", "Total Amount",
                   "Paid Amt", "Balance Due", "Paid By", "Status", "Action"].map((h) => (
                   <th
                     key={h}
@@ -219,7 +219,7 @@ export default function Orders({ filter = "all" }) {
                         </div>
                       </td>
 
-                      {/* Vat / Tax */}
+                      {/* GST */}
                       <td style={s.td}>
                         <span style={s.amtCell}>₹{fmt(order.tax_amount)}</span>
                       </td>
@@ -443,7 +443,7 @@ export default function Orders({ filter = "all" }) {
                     <span>- ₹{fmt(detail.discount)}</span>
                   </div>
                   <div style={s.totalRow}>
-                    <span>Vat / Tax</span>
+                    <span>GST</span>
                     <span>₹{fmt(detail.tax_amount)}</span>
                   </div>
                   <div style={s.grandTotalRow}>

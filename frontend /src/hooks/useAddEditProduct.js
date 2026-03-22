@@ -17,6 +17,7 @@ const EMPTY_FORM = {
   alert_stock: "5",
   gst_percent: "0",
   price_type:  "exclusive",
+  unit_type:   "pcs",
 };
 
 /**
@@ -39,6 +40,8 @@ export const useAddEditProduct = () => {
   const [imagePreview,  setImagePreview]  = useState(null);
   const [existingImage, setExistingImage] = useState(null);
   const [removeImage,   setRemoveImage]   = useState(false);
+  const [imageFiles,    setImageFiles]    = useState([]); // Multiple images array
+  const [imagePreviews, setImagePreviews] = useState([]); // Preview URLs for multiple images
   const [loading,       setLoading]       = useState(isEdit);
   const [saving,        setSaving]        = useState(false);
   const [error,         setError]         = useState(null);
@@ -86,6 +89,7 @@ export const useAddEditProduct = () => {
           alert_stock: String(p.alert_stock ?? "5"),
           gst_percent: String(p.gst_percent ?? "0"),
           price_type:  p.price_type  || "exclusive",
+          unit_type:   p.unit_type   || "pcs",
         });
 
         if (p.category_parent_id) {
@@ -169,7 +173,21 @@ export const useAddEditProduct = () => {
     setImagePreview(URL.createObjectURL(file));
     setRemoveImage(false);
   };
+  // Handle multiple image uploads
+  const handleMultipleImageChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    
+    setImageFiles((prev) => [...prev, ...files]);
+    const newPreviews = files.map((file) => URL.createObjectURL(file));
+    setImagePreviews((prev) => [...prev, ...newPreviews]);
+  };
 
+  // Remove a single image from multiple images
+  const removeMultipleImage = (index) => {
+    setImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
   const handleRemoveImage = () => {
     setImageFile(null);
     setImagePreview(null);
@@ -199,6 +217,11 @@ export const useAddEditProduct = () => {
       Object.entries(form).forEach(([k, v]) => fd.append(k, v ?? ""));
       if (imageFile)   fd.append("image",        imageFile);
       if (removeImage) fd.append("remove_image", "1");
+      
+      // Handle multiple images
+      imageFiles.forEach((file) => {
+        fd.append(`images[]`, file);
+      });
 
       if (isEdit) {
         // PHP does not populate $_POST/$_FILES for PUT multipart requests.
@@ -224,10 +247,12 @@ export const useAddEditProduct = () => {
     shopId, isEdit, form, setForm,
     parentCats, subCats, parentCatId,
     imagePreview, existingImage,
+    imageFiles, imagePreviews,
     loading, saving, error,
     priceExcl, priceIncl, gstAmount, gstRate,
     handleChange, handleParentCatChange, handleSubCatChange,
     handleImageChange, handleRemoveImage, handleSubmit,
+    handleMultipleImageChange, removeMultipleImage,
     // inline category creation
     catModal, catModalMode, newCatName, setNewCatName,
     newCatSaving, newCatError,

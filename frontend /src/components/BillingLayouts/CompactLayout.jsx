@@ -51,7 +51,7 @@ const CompactLayout = ({ sale, shop }) => {
       <div className="mb-2 pb-2 border-b border-gray-300 space-y-1">
         {sale?.gst_amount > 0 && (
           <div className="flex justify-between">
-            <span>Tax:</span>
+            <span>GST:</span>
             <span>{formatCurrency(sale?.gst_amount)}</span>
           </div>
         )}

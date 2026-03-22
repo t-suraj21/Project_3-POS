@@ -15,7 +15,9 @@ const PAGE_META = {
   billing:          { title: "Billing",            icon: "💳" },
   sales:            { title: "New Sale",           icon: "🛒" },
   orders:           { title: "Orders",             icon: "🧾" },
-  reports:          { title: "Reports",            icon: "📊" },  inventory:        { title: "Inventory",           icon: "📋" },  settings:         { title: "Settings",           icon: "⚙️" },
+  reports:          { title: "Reports",            icon: "📊" },
+  inventory:        { title: "Inventory",           icon: "📋" },
+  settings:         { title: "Settings",           icon: "⚙️" },
 };
 
 const getPageMeta = (pathname) => {
@@ -184,32 +186,7 @@ const ShopLayout = ({ children }) => {
           </NavLink>
         )}
 
-        {/* Orders group — visible to sales workers and managers */}
-        {canAccessModule(user?.role, "sales") && (
-          <div className={collapsed ? "sl-tip" : ""} data-tip="Orders">
-            <button className="sl-nav-link" style={groupStyle(ordOpen)} onClick={() => !collapsed && setOrdOpen(v => !v)}>
-              <NavIcon emoji="🧾" />
-              {!collapsed && (
-                <>
-                  <span style={{ flex: 1, textAlign: "left" }}>Orders</span>
-                  <span className={`sl-chevron ${ordOpen ? "open" : ""}`}>▶</span>
-                </>
-              )}
-            </button>
-            {!collapsed && (
-              <SubMenu open={ordOpen}>
-                <SubItems>
-                  <NavLink end to={`${base}/orders`}           className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>All Orders</span></NavLink>
-                  <NavLink end to={`${base}/orders/completed`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Completed</span></NavLink>
-                  <NavLink end to={`${base}/orders/pending`}   className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Pending / Balance</span></NavLink>
-                  <NavLink end to={`${base}/orders/refunded`}  className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Refunded</span></NavLink>
-                </SubItems>
-              </SubMenu>
-            )}
-          </div>
-        )}
-
-        {/* Products group — visible to stock managers and managers */}
+        {/* Products group — visible to inventory managers and managers */}
         {canAccessModule(user?.role, "products") && (
           <div className={collapsed ? "sl-tip" : ""} data-tip="Products">
             <button className="sl-nav-link" style={groupStyle(prodOpen)} onClick={() => !collapsed && setProdOpen(v => !v)}>
@@ -224,8 +201,8 @@ const ShopLayout = ({ children }) => {
             {!collapsed && (
               <SubMenu open={prodOpen}>
                 <SubItems>
-                  <NavLink to={`${base}/add-product`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Add New</span></NavLink>
-                  <NavLink end to={`${base}/products`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>All Products</span></NavLink>
+                  <NavLink end to={`${base}/products`}      className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>All Products</span></NavLink>
+                  <NavLink end to={`${base}/add-product`}   className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Add Product</span></NavLink>
                 </SubItems>
               </SubMenu>
             )}
@@ -249,6 +226,31 @@ const ShopLayout = ({ children }) => {
                 <SubItems>
                   <NavLink end to={`${base}/categories`}     className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Categories</span></NavLink>
                   <NavLink end to={`${base}/sub-categories`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Sub-Categories</span></NavLink>
+                </SubItems>
+              </SubMenu>
+            )}
+          </div>
+        )}
+
+        {/* Orders group — visible to sales workers and managers */}
+        {canAccessModule(user?.role, "sales") && (
+          <div className={collapsed ? "sl-tip" : ""} data-tip="Orders">
+            <button className="sl-nav-link" style={groupStyle(ordOpen)} onClick={() => !collapsed && setOrdOpen(v => !v)}>
+              <NavIcon emoji="🧾" />
+              {!collapsed && (
+                <>
+                  <span style={{ flex: 1, textAlign: "left" }}>Orders</span>
+                  <span className={`sl-chevron ${ordOpen ? "open" : ""}`}>▶</span>
+                </>
+              )}
+            </button>
+            {!collapsed && (
+              <SubMenu open={ordOpen}>
+                <SubItems>
+                  <NavLink end to={`${base}/orders`}           className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>All Orders</span></NavLink>
+                  <NavLink end to={`${base}/orders/completed`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Completed</span></NavLink>
+                  <NavLink end to={`${base}/orders/pending`}   className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Pending / Balance</span></NavLink>
+                  <NavLink end to={`${base}/orders/refunded`}  className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Refunded</span></NavLink>
                 </SubItems>
               </SubMenu>
             )}

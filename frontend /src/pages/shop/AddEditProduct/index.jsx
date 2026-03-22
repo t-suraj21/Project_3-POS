@@ -19,15 +19,18 @@ const genSku = () =>
 
 const AddEditProduct = () => {
   const fileRef = useRef(null);
+  const multiImageRef = useRef(null);
 
   const {
     shopId, isEdit, form, setForm,
     parentCats, subCats, parentCatId,
     imagePreview, existingImage,
+    imageFiles, imagePreviews,
     loading, saving, error,
     priceExcl, priceIncl, gstAmount, gstRate,
     handleChange, handleParentCatChange, handleSubCatChange,
     handleImageChange, handleRemoveImage, handleSubmit,
+    handleMultipleImageChange, removeMultipleImage,
     catModal, catModalMode, newCatName, setNewCatName,
     newCatSaving, newCatError,
     openCatModal, closeCatModal, createCategory,
@@ -154,6 +157,86 @@ const AddEditProduct = () => {
               </div>
 
             </div>
+
+            {/* ── Multiple Images Gallery ── */}
+            {(imageFiles.length > 0 || imagePreviews.length > 0) && (
+              <div style={{ marginTop: "1.5rem", paddingTop: "1.5rem", borderTop: "1px solid #e5e7eb" }}>
+                <div style={{ marginBottom: "0.8rem", fontSize: "0.875rem", fontWeight: 600, color: "#374151" }}>
+                  📸 Additional Images ({imageFiles.length})
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))", gap: "0.8rem" }}>
+                  {imagePreviews.map((preview, idx) => (
+                    <div key={idx} style={{ position: "relative", borderRadius: "8px", overflow: "hidden", border: "1px solid #e5e7eb", aspectRatio: "1" }}>
+                      <img src={preview} alt={`Gallery ${idx}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <button
+                        type="button"
+                        onClick={() => removeMultipleImage(idx)}
+                        style={{
+                          position: "absolute",
+                          top: 4, right: 4,
+                          width: 20, height: 20,
+                          borderRadius: "50%",
+                          background: "rgba(0,0,0,0.6)",
+                          border: "none",
+                          color: "white",
+                          cursor: "pointer",
+                          fontSize: "12px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => multiImageRef.current?.click()}
+                  style={{
+                    marginTop: "0.8rem",
+                    padding: "0.4rem 0.8rem",
+                    fontSize: "0.8rem",
+                    background: "#f3f4f6",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                  }}
+                >
+                  + Add more images
+                </button>
+              </div>
+            )}
+
+            {imageFiles.length === 0 && imagePreviews.length === 0 && (
+              <button
+                type="button"
+                onClick={() => multiImageRef.current?.click()}
+                style={{
+                  marginTop: "0.8rem",
+                  padding: "0.6rem 1rem",
+                  fontSize: "0.85rem",
+                  background: "#f0f9ff",
+                  border: "1px dashed #0284c7",
+                  borderRadius: "6px",
+                  color: "#0284c7",
+                  cursor: "pointer",
+                  fontWeight: 500,
+                }}
+              >
+                📁 Add Multiple Images (Optional)
+              </button>
+            )}
+
+            <input
+              ref={multiImageRef}
+              type="file"
+              multiple
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              style={{ display: "none" }}
+              onChange={handleMultipleImageChange}
+            />
           </div>
         </div>
 
@@ -287,11 +370,21 @@ const AddEditProduct = () => {
               </Field>
 
               <Field label="Unit type">
-                <select style={s.select} disabled>
-                  <option>pcs</option>
-                  <option>kg</option>
-                  <option>g</option>
-                  <option>litre</option>
+                <select 
+                  style={s.select} 
+                  name="unit_type"
+                  value={form.unit_type}
+                  onChange={handleChange}
+                >
+                  <option value="pcs">Pieces</option>
+                  <option value="kg">Kilogram (kg)</option>
+                  <option value="g">Gram (g)</option>
+                  <option value="litre">Litre (L)</option>
+                  <option value="ml">Millilitre (ml)</option>
+                  <option value="box">Box</option>
+                  <option value="dozen">Dozen</option>
+                  <option value="meter">Meter (m)</option>
+                  <option value="cm">Centimeter (cm)</option>
                 </select>
               </Field>
             </div>
@@ -346,7 +439,7 @@ const AddEditProduct = () => {
             </div>
 
             <div style={s.priceRow2}>
-              <Field label="Tax in percent (GST type)">
+              <Field label="GST in percent (%)">
                 <div style={s.gstToggle}>
                   <button
                     type="button"
