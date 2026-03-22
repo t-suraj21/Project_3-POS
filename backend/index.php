@@ -103,8 +103,8 @@ if (str_starts_with($uri, '/api/sales')) {
     exit;
 }
 
-// ── Shop settings — name, address, GST number, logo, favicon
-if (str_starts_with($uri, '/api/settings')) {
+// ── Shop settings & billing layouts — name, address, GST number, logo, favicon, billing layouts
+if (str_starts_with($uri, '/api/settings') || str_starts_with($uri, '/api/billing')) {
     require_once __DIR__ . "/routes/settings.php";
     exit;
 }

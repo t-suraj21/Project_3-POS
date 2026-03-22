@@ -228,8 +228,8 @@ class ProductController
         $stmt = $conn->prepare("
             INSERT INTO products
                 (shop_id, category_id, name, sku, barcode, description, brand, image,
-                 cost_price, sell_price, stock, alert_stock, gst_percent, price_type)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                 cost_price, sell_price, stock, alert_stock, gst_percent, price_type, unit_type)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ");
 
         $stmt->execute([
@@ -248,6 +248,7 @@ class ProductController
             (float) ($data['gst_percent'] ?? 0),
             in_array($data['price_type'] ?? '', ['inclusive','exclusive'])
                 ? $data['price_type'] : 'exclusive',
+            $data['unit_type'] ?? 'pcs',
         ]);
 
         $newId = (int) $conn->lastInsertId();
@@ -320,7 +321,8 @@ class ProductController
                 stock       = ?,
                 alert_stock = ?,
                 gst_percent = ?,
-                price_type  = ?
+                price_type  = ?,
+                unit_type   = ?
             WHERE id = ? AND shop_id = ?
         ");
 
@@ -339,6 +341,7 @@ class ProductController
             (float) ($data['gst_percent'] ?? 0),
             in_array($data['price_type'] ?? '', ['inclusive','exclusive'])
                 ? $data['price_type'] : 'exclusive',
+            $data['unit_type'] ?? 'pcs',
             $id,
             $shopId,
         ]);

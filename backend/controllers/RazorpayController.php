@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . "/../config/database.php";
+require_once __DIR__ . "/../utils/BillingHelper.php";
 
 /**
  * RazorpayController
@@ -108,8 +109,8 @@ class RazorpayController
             return;
         }
 
-        // ── Generate bill number ──────────────────────────────────────────────
-        $billNum   = 'BILL-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
+        // ── Generate bill number (numeric only: YYYYMMDDXXXXXX) ──────────────
+        $billNum   = BillingHelper::generateBillNumber($conn, $shopId);
         $receiptId = 'rcpt_' . strtolower(substr(uniqid(), -8));
 
         // ── Call Razorpay API ─────────────────────────────────────────────────

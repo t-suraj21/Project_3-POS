@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . "/../config/database.php";
+require_once __DIR__ . "/../utils/BillingHelper.php";
 
 class SalesController
 {
@@ -357,8 +358,8 @@ class SalesController
         $status      = $payMode === 'credit' ? 'credit'
                          : ($paidAmount >= $total ? 'paid' : 'partial');
 
-        // ── Bill number: BILL-YYYYMMDD-XXXXXX ────────────────────────────────
-        $billNum = 'BILL-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
+        // ── Bill number: Numeric only (YYYYMMDDXXXXXX) ───────────────────────
+        $billNum = BillingHelper::generateBillNumber($conn, $shopId);
 
         $conn->beginTransaction();
         try {
