@@ -351,34 +351,38 @@ const s = {
   // ── Action buttons ────────────────────────────────────────────────────────
   actionWrap: {
     display: "flex",
-    gap: "0.45rem",
+    gap: "0.5rem",
     justifyContent: "center",
   },
 
-  eyeBtn: {
-    width: 30, height: 30,
+  viewBtn: {
+    padding: "0.35rem 0.75rem",
     border: "none",
     background: "#eff6ff",
     color: "#3b82f6",
     borderRadius: "7px",
     cursor: "pointer",
-    display: "flex",
+    display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "0.85rem",
+    fontSize: "0.78rem",
+    fontWeight: 600,
+    fontFamily: "inherit",
   },
 
   refundBtn: (disabled) => ({
-    width: 30, height: 30,
+    padding: "0.35rem 0.75rem",
     border: "none",
     background: disabled ? "#f3f4f6" : "#fff1f2",
     color: disabled ? "#9ca3af" : "#ef4444",
     borderRadius: "7px",
     cursor: disabled ? "not-allowed" : "pointer",
-    display: "flex",
+    display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "0.85rem",
+    fontSize: "0.78rem",
+    fontWeight: 600,
+    fontFamily: "inherit",
   }),
 
   // ── Empty / loading ───────────────────────────────────────────────────────

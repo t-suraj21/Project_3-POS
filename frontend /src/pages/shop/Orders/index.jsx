@@ -259,13 +259,13 @@ export default function Orders({ filter = "all" }) {
                       {/* Action */}
                       <td style={{ ...s.td, ...s.tdCenter }}>
                         <div style={s.actionWrap}>
-                          {/* Eye — view detail */}
+                          {/* View — view detail */}
                           <button
-                            style={s.eyeBtn}
+                            style={s.viewBtn}
                             title="View detail"
                             onClick={() => loadDetail(order.id)}
                           >
-                            👁
+                            View
                           </button>
 
                           {/* Pay — only for pending/credit/partial */}
@@ -296,7 +296,7 @@ export default function Orders({ filter = "all" }) {
                             disabled={alreadyRefunded}
                             onClick={() => !alreadyRefunded && refundOrder(order.id)}
                           >
-                            ↩
+                            Refund
                           </button>
                         </div>
                       </td>
