@@ -8,10 +8,26 @@ class SalesController
     {
         global $conn;
         $shopId = (int) $user['shop_id'];
-        $limit  = min((int) ($_GET['limit'] ?? 100), 500);
+        
+        // ⚠️ SECURITY: LIMIT must be validated strictly (PDO doesn't allow parameterized LIMIT)
+        $limit  = max(1, min((int) ($_GET['limit'] ?? 100), 500)); // Ensure 1-500 range
         $status = trim($_GET['status'] ?? '');
         $search = trim($_GET['search'] ?? '');
         $date   = trim($_GET['date']   ?? '');
+
+        // Input validation
+        if (!empty($status) && !in_array($status, ['completed', 'pending', 'refunded', 'all'], true)) {
+            http_response_code(422);
+            echo json_encode(["error" => "Invalid status filter"]);
+            return;
+        }
+        
+        // Validate date format (YYYY-MM-DD)
+        if (!empty($date) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            http_response_code(422);
+            echo json_encode(["error" => "Invalid date format. Use YYYY-MM-DD"]);
+            return;
+        }
 
         $where  = ["s.shop_id = ?"];
         $params = [$shopId];
@@ -37,6 +53,7 @@ class SalesController
 
         $whereSQL = implode(' AND ', $where);
 
+        // LIMIT is cast to int, which is the safest approach for PDO
         $stmt = $conn->prepare("
             SELECT s.id, s.bill_number, s.customer_name, s.customer_phone,
                    s.subtotal, s.discount, s.tax_amount, s.total_amount,
@@ -48,7 +65,7 @@ class SalesController
             WHERE {$whereSQL}
             GROUP BY s.id
             ORDER BY s.created_at DESC
-            LIMIT {$limit}
+            LIMIT " . (int)$limit . "
         ");
         $stmt->execute($params);
         $sales = $stmt->fetchAll(PDO::FETCH_ASSOC);

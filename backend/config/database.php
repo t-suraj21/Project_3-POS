@@ -1,8 +1,9 @@
 <?php
-$host     = "localhost";
-$db_name  = "pos_db";
-$username = "root";
-$password = "";
+// Database configuration - load from environment variables for security
+$host     = $_ENV['DB_HOST']     ?? 'localhost';
+$db_name  = $_ENV['DB_NAME']     ?? 'pos_db';
+$username = $_ENV['DB_USER']     ?? 'root';
+$password = $_ENV['DB_PASSWORD'] ?? '';
 
 try {
     $conn = new PDO("mysql:host=$host;dbname=$db_name;charset=utf8mb4", $username, $password);
@@ -13,7 +14,13 @@ try {
     $conn->exec("SET time_zone = '+05:30'");
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["message" => "Database connection failed: " . $e->getMessage()]);
+    // Never expose database error details to frontend in production
+    $isDevelopment = ($_ENV['APP_ENV'] ?? 'production') === 'development';
+    $message = $isDevelopment 
+        ? "Database connection failed: " . $e->getMessage()
+        : "Database connection failed. Please contact support.";
+    echo json_encode(["message" => $message]);
+    error_log("Database connection error: " . $e->getMessage());
     exit;
 }
 ?>

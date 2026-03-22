@@ -42,13 +42,21 @@ class Mailer
             $mail->SMTPSecure = $cfg['encryption'] === 'ssl' ? PHPMailer::ENCRYPTION_SMTPS
                                                              : PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port       = $cfg['port'];
+            
+            // ⚠️ SECURITY: SSL verification settings
+            // Enable verification in production, disable only in development
+            $isDevelopment = ($_ENV['APP_ENV'] ?? 'production') === 'development';
             $mail->SMTPOptions = [
                 'ssl' => [
-                    'verify_peer'       => false,
-                    'verify_peer_name'  => false,
-                    'allow_self_signed' => true,
+                    'verify_peer'       => !$isDevelopment,  // false only in development
+                    'verify_peer_name'  => !$isDevelopment,  // false only in development
+                    'allow_self_signed' => $isDevelopment,   // true only in development
                 ],
             ];
+            
+            if ($isDevelopment) {
+                error_log("[Mailer] Running in DEVELOPMENT mode - SSL verification DISABLED. Enable in production!");
+            }
 
             // ── Sender & recipient ────────────────────────────────────────
             $mail->setFrom($cfg['from_email'], $cfg['from_name']);

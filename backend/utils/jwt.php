@@ -16,9 +16,20 @@
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
-// The secret used to sign and verify every token. Must be at least 32 characters
-// for HS256 to be cryptographically secure (firebase/php-jwt v7 requirement).
-$JWT_SECRET = "POS_SUPER_SECRET_KEY_2024_ABCDEFGH";
+// ⚠️ SECURITY: JWT_SECRET is loaded from .env to prevent exposure.
+// If .env is not loaded, this will use a default but MUST be changed in production.
+// Generate a strong key: openssl rand -hex 32
+$JWT_SECRET = $_ENV['JWT_SECRET'] ?? 'CHANGE_ME_IN_ENV_FILE_IMMEDIATELY_32CHAR_MIN';
+
+// Validate secret length
+if (strlen($JWT_SECRET) < 32) {
+    error_log("WARNING: JWT_SECRET is less than 32 characters. This is insecure.");
+    if (php_sapi_name() === 'cli') {
+        echo "ERROR: JWT_SECRET must be at least 32 characters long.\n";
+        echo "Generate a key with: openssl rand -hex 32\n";
+        exit(1);
+    }
+}
 
 /**
  * Create a signed JWT token for the given user.

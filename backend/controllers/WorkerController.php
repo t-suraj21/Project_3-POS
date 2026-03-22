@@ -95,7 +95,7 @@ class WorkerController
                  VALUES (?, ?, ?, ?, ?, ?)"
             );
 
-            $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+            $hashedPassword = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
             error_log("[WorkerController::create] Password hashed. About to execute INSERT...");
             error_log("[WorkerController::create] Parameters: shopId=$shopId, name=$name, email=$email, role=$role, is_verified=1");
 

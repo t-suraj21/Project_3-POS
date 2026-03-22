@@ -65,7 +65,8 @@ class AuthController
             $shopId = $conn->lastInsertId();
 
             // 2. Create user (unverified)
-            $hashedPassword = password_hash($data->password, PASSWORD_BCRYPT);
+            // ⚠️ SECURITY: Use cost parameter (12) for stronger hashing
+            $hashedPassword = password_hash($data->password, PASSWORD_BCRYPT, ['cost' => 12]);
             $stmt = $conn->prepare(
                 "INSERT INTO users
                     (shop_id, name, email, password, role, is_verified, verification_token, token_expires_at)
@@ -399,7 +400,8 @@ class AuthController
         }
 
         // Update password and clear the token so it can't be reused
-        $hashed = password_hash($password, PASSWORD_BCRYPT);
+        // ⚠️ SECURITY: Use cost parameter (12) for stronger hashing
+        $hashed = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
         $stmt   = $conn->prepare(
             "UPDATE users
              SET password = ?, reset_token = NULL, reset_token_expires_at = NULL

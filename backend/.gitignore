@@ -1,12 +1,54 @@
-# Environment (contains real credentials — never commit)
+# ─────────── SECURITY ─────────────────────────────────────────────────────────
+# Environment files - NEVER commit these (contain real credentials)
 .env
+.env.local
+.env.*.local
+.env.*.php
 
-# Composer dependencies
-/vendor/
-
-# PHP cache
-*.cache
-
-# OS files
+# IDE & Editor
+.vscode/
+.idea/
+*.code-workspace
 .DS_Store
 Thumbs.db
+
+# Dependencies
+/vendor/
+composer.lock
+
+# Uploade files  
+/uploads/**
+!/uploads/.gitkeep
+
+# Cache files
+*.cache
+.cache/
+/tmp/
+/temp/
+
+# Logs
+*.log
+logs/
+
+# PHP Session files
+session/
+sessions/
+php_errors.log
+
+# OS & Temporary files
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Database backups (if any)
+*.sql.backup
+*.sql.bak
+
+# Common sensitive files that might be created
+config/local.php
+config/development.php
+config/production.php
+

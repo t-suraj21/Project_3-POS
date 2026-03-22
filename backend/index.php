@@ -27,13 +27,39 @@ if (file_exists(__DIR__ . "/.env")) {
 }
 
 // ─── CORS Headers ─────────────────────────────────────────────────────────────
-// These headers tell browsers that our React frontend (on a different port)
-// is allowed to make requests to this API. In production, restrict
-// Access-Control-Allow-Origin to your actual domain instead of "*".
+// Configure CORS to allow only your frontend URL
+// In development: allow localhost:5173
+// In production: set to your actual domain
+$allowedOrigin = $_ENV['FRONTEND_URL'] ?? 'http://localhost:5173';
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+
+// Validate origin against allowed list
+if ($origin === $allowedOrigin || $origin === str_replace('http://', 'https://', $allowedOrigin)) {
+    header("Access-Control-Allow-Origin: $origin");
+    header("Access-Control-Allow-Credentials: true");
+}
+
+// Other CORS headers
 header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-CSRF-Token");
+header("Access-Control-Max-Age: 3600");
+
+// ─── Security Headers ─────────────────────────────────────────────────────────
+// Prevent clickjacking attacks
+header("X-Frame-Options: SAMEORIGIN");
+// Prevent MIME type sniffing
+header("X-Content-Type-Options: nosniff");
+// Enable XSS protection
+header("X-XSS-Protection: 1; mode=block");
+// Content Security Policy - restrict resource loading
+header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;");
+// Referrer policy
+header("Referrer-Policy: strict-origin-when-cross-origin");
+// HSTS for production
+if (($_ENV['APP_ENV'] ?? 'development') === 'production') {
+    header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
+}
 
 // Browsers send a preflight OPTIONS request before any cross-origin request
 // that uses custom headers (like Authorization). We handle it here globally
