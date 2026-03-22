@@ -1,18 +1,3 @@
-/**
- * App.jsx — Application Root
- *
- * This file owns the entire routing tree for the POS frontend.
- * It defines:
- *   - Public routes (login, register, forgot/reset password)
- *   - Super Admin routes (platform-level oversight)
- *   - Shop Admin routes (everything under /shop/:id/*)
- *   - A smart redirect at / that sends the user to the right
- *     dashboard based on their role, or to /login if not logged in
- *
- * Route protection is handled by two wrapper components defined here:
- *   SmartRedirect    — sends a logged-in user to the right dashboard
- *   ShopAdminLayout  — wraps all shop pages with a sidebar + guards the route
- */
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { useAuth } from "./hooks/useAuth";

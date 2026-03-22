@@ -108,41 +108,47 @@ const s = {
   productGrid: {
     flex: 1,
     overflowY: "auto",
-    padding: "1.25rem 1.5rem",
+    padding: "1.5rem",
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(155px, 1fr))",
-    gap: "1rem",
+    gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+    gap: "1.5rem",
     alignContent: "start",
   },
 
   productCard: (outOfStock) => ({
     background: "#fff",
     borderRadius: "12px",
-    border: `1px solid ${outOfStock ? "#fee2e2" : "#e5e7eb"}`,
+    border: "1px solid #e5e7eb",
     overflow: "hidden",
     cursor: outOfStock ? "not-allowed" : "pointer",
-    opacity: outOfStock ? 0.62 : 1,
-    boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+    opacity: outOfStock ? 0.65 : 1,
+    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
     display: "flex",
     flexDirection: "column",
+    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+    minHeight: "370px",
+    maxHeight: "420px"
   }),
 
   productCardHover: {},
 
   productImgWrap: {
     width: "100%",
-    aspectRatio: "1 / 1",
+    height: "220px",
     overflow: "hidden",
-    background: "#f8fafc",
+    background: "#f9fafb",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    position: "relative",
+    flexShrink: 0
   },
 
   productImg: {
     width: "100%",
     height: "100%",
     objectFit: "cover",
+    transition: "transform 0.3s ease"
   },
 
   productImgPlaceholder: {
@@ -151,20 +157,34 @@ const s = {
   },
 
   productInfo: {
-    padding: "0.65rem 0.75rem",
+    padding: "1.25rem",
     display: "flex",
     flexDirection: "column",
-    gap: "0.2rem",
+    gap: "0.15rem",
+    flex: 1,
+    justifyContent: "space-between"
+  },
+
+  productCategory: {
+    fontSize: "0.7rem",
+    fontWeight: "600",
+    color: "#9ca3af",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+    marginBottom: "0.25rem"
   },
 
   productName: {
-    fontSize: "0.82rem",
-    fontWeight: 700,
+    fontSize: "0.95rem",
+    fontWeight: "700",
     color: "#111827",
-    lineHeight: 1.3,
-    whiteSpace: "nowrap",
+    lineHeight: 1.35,
+    display: "-webkit-box",
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: "vertical",
     overflow: "hidden",
-    textOverflow: "ellipsis",
+    marginBottom: "0.05rem",
+    minHeight: "2.5rem"
   },
 
   productUnit: {
@@ -173,26 +193,42 @@ const s = {
   },
 
   productCostStrike: {
-    fontSize: "0.72rem",
-    color: "#9ca3af",
+    fontSize: "0.8rem",
+    color: "#b8bcc4",
     textDecoration: "line-through",
+    marginBottom: "0.05rem",
+    fontWeight: "500"
   },
 
   productPrice: {
-    fontSize: "0.92rem",
-    fontWeight: 800,
-    color: "#1e1b4b",
+    fontSize: "1.2rem",
+    fontWeight: "800",
+    color: "#2563eb",
+    marginBottom: "0.1rem",
+    letterSpacing: "0.2px"
+  },
+
+  productDescription: {
+    fontSize: "0.75rem",
+    color: "#6b7280",
+    lineHeight: 1.4,
+    display: "-webkit-box",
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: "vertical",
+    overflow: "hidden",
+    marginBottom: "0.1rem",
+    minHeight: "1.8rem"
   },
 
   outOfStockBadge: {
     display: "inline-block",
-    background: "#fee2e2",
-    color: "#dc2626",
-    fontSize: "0.65rem",
-    fontWeight: 700,
-    padding: "0.1rem 0.45rem",
-    borderRadius: "9999px",
-    marginTop: "0.15rem",
+    background: "transparent",
+    color: "#374151",
+    fontSize: "0.8rem",
+    fontWeight: "500",
+    padding: "0",
+    borderRadius: "0",
+    marginTop: "auto"
   },
 
   cartBadge: (count) => ({

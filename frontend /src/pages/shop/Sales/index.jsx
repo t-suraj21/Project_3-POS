@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import useSales from "../../../hooks/useSales";
 import s from "./styles";
@@ -15,36 +16,47 @@ const ProductCard = ({ product, onAdd }) => {
   const src        = imgSrc(product.image);
   const showOld    = parseFloat(product.cost_price) > 0 &&
                      parseFloat(product.cost_price) !== parseFloat(product.sell_price);
+  const [hover, setHover] = useState(false);
 
   return (
     <div
-      style={s.productCard(outOfStock)}
+      style={{
+        ...s.productCard(outOfStock),
+        ...(hover && !outOfStock ? {
+          boxShadow: "0 8px 16px rgba(0,0,0,0.12)",
+          transform: "translateY(-2px)"
+        } : {})
+      }}
+      onMouseEnter={() => !outOfStock && setHover(true)}
+      onMouseLeave={() => setHover(false)}
       onClick={() => !outOfStock && onAdd(product)}
       title={outOfStock ? "Out of stock" : `Add ${product.name} to cart`}
     >
       {/* Image */}
       <div style={s.productImgWrap}>
         {src
-          ? <img src={src} alt={product.name} style={s.productImg} onError={e => { e.target.style.display = "none"; }} />
-          : <span style={s.productImgPlaceholder}>🖼️</span>
+          ? <img src={src} alt={product.name} style={{ ...s.productImg, transform: hover ? "scale(1.05)" : "scale(1)" }} onError={e => { e.target.style.display = "none"; }} />
+          : <span style={s.productImgPlaceholder}>📦</span>
         }
       </div>
 
       {/* Info */}
       <div style={s.productInfo}>
+        {product.category && <div style={s.productCategory}>{product.category}</div>}
         <div style={s.productName} title={product.name}>{product.name}</div>
 
-        {product.unit && <div style={s.productUnit}>{product.unit}</div>}
+        <div>
+          {showOld && (
+            <div style={s.productCostStrike}>{fmt(product.cost_price)}</div>
+          )}
+          <div style={s.productPrice}>{fmt(product.sell_price)}</div>
+        </div>
 
-        {showOld && (
-          <div style={s.productCostStrike}>{fmt(product.cost_price)}</div>
-        )}
-
-        <div style={s.productPrice}>{fmt(product.sell_price)}</div>
+        {product.description && <div style={s.productDescription}>{product.description}</div>}
 
         {outOfStock
           ? <span style={s.outOfStockBadge}>Out of Stock</span>
-          : <span style={{ fontSize: "0.7rem", color: "#9ca3af" }}>Stock: {product.stock}</span>
+          : <span style={s.outOfStockBadge}>Stock: {product.stock}</span>
         }
       </div>
     </div>
