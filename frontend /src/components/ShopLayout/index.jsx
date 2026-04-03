@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { NavLink, useParams, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { canAccessModule } from "../../utils/accessControl";
+import NotificationIcon from "../NotificationIcon";
 import * as S from "./styles";
 
 const PAGE_META = {
@@ -413,7 +414,7 @@ const ShopLayout = ({ children }) => {
             </div>
           </div>
 
-          {/* Right side: date + quick-sale + user chip */}
+          {/* Right side: date + quick-sale + notifications + user chip */}
           <div style={{ display: "flex", alignItems: "center", gap: "0.7rem", flexShrink: 0 }}>
             <div style={S.dateBadge}>📅 {dateStr}</div>
 
@@ -426,6 +427,9 @@ const ShopLayout = ({ children }) => {
                 🛒 New Sale
               </button>
             )}
+
+            {/* Notification Icon */}
+            <NotificationIcon />
 
             <div style={S.topBarDivider} />
 

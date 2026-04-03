@@ -3,15 +3,17 @@ import { AuthProvider } from "./context/AuthContext";
 import { useAuth } from "./hooks/useAuth";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
-import Login          from "./Auth/Login";
-import RegisterShop   from "./Auth/RegisterShop";
-import ForgotPassword from "./Auth/ForgotPassword";
-import ResetPassword  from "./Auth/ResetPassword";
+import Login                  from "./Auth/Login";
+import RegisterShop           from "./Auth/RegisterShop";
+import ForgotPassword         from "./Auth/ForgotPassword";
+import ResetPassword          from "./Auth/ResetPassword";
+import SuperDashboardLogin    from "./Auth/SuperDashboardLogin";
 
 // SuperAdmin pages
 import SuperDashboard from "./pages/super/SuperDashboard";
 import ShopsList      from "./pages/super/ShopsList";
 import ShopDetails    from "./pages/super/ShopDetails";
+import Subscriptions  from "./pages/super/Subscriptions";
 
 // Shop Admin pages
 import ShopDashboard  from "./pages/shop/ShopDashboard";
@@ -75,6 +77,7 @@ function App() {
           <Route path="/register"        element={<RegisterShop />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password"  element={<ResetPassword />} />
+          <Route path="/superdashlogin"  element={<SuperDashboardLogin />} />
 
           {/* ── SuperAdmin routes ────────────────────────────────────────── */}
           <Route
@@ -98,6 +101,14 @@ function App() {
             element={
               <ProtectedRoute role="superadmin">
                 <ShopDetails />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/super/subscriptions"
+            element={
+              <ProtectedRoute role="superadmin">
+                <Subscriptions />
               </ProtectedRoute>
             }
           />
