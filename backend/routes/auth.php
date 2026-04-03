@@ -18,6 +18,13 @@ if ($uri === '/api/auth/register-shop' && $method === 'POST') {
     exit;
 }
 
+// POST /api/auth/register-superadmin — Rate limit: 5 per hour per IP
+if ($uri === '/api/auth/register-superadmin' && $method === 'POST') {
+    requireRateLimit('register-superadmin', 5);
+    AuthController::registerSuperadmin();
+    exit;
+}
+
 // POST /api/auth/verify-otp — Rate limit: 10 per hour per IP
 if ($uri === '/api/auth/verify-otp' && $method === 'POST') {
     requireRateLimit('verify-otp', 10);

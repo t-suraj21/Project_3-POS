@@ -412,5 +412,79 @@ class AuthController
         http_response_code(200);
         echo json_encode(["message" => "Password updated successfully! You can now sign in."]);
     }
+
+    // ─── POST /api/auth/register-superadmin ──────────────────────────────────
+    public static function registerSuperadmin(): void
+    {
+        global $conn;
+
+        $data = json_decode(file_get_contents("php://input"));
+
+        // ── Validate required fields ──────────────────────────────────────
+        $required = ['name', 'email', 'password'];
+        foreach ($required as $field) {
+            if (empty($data->$field)) {
+                http_response_code(422);
+                echo json_encode(["message" => "Field '$field' is required"]);
+                return;
+            }
+        }
+
+        // ── Validate email format ─────────────────────────────────────────
+        if (!filter_var($data->email, FILTER_VALIDATE_EMAIL)) {
+            http_response_code(422);
+            echo json_encode(["message" => "Please enter a valid email address"]);
+            return;
+        }
+
+        // ── Validate password length ──────────────────────────────────────
+        if (strlen($data->password) < 8) {
+            http_response_code(422);
+            echo json_encode(["message" => "Password must be at least 8 characters"]);
+            return;
+        }
+
+        // ── Check for duplicate email ─────────────────────────────────────
+        $stmt = $conn->prepare("SELECT id, is_verified FROM users WHERE email = ?");
+        $stmt->execute([$data->email]);
+        $existing = $stmt->fetch();
+
+        if ($existing) {
+            http_response_code(409);
+            echo json_encode(["message" => "This email is already registered. Please sign in."]);
+            return;
+        }
+
+        try {
+            $conn->beginTransaction();
+
+            // ── Hash password with strong cost parameter ──────────────────
+            $hashedPassword = password_hash($data->password, PASSWORD_BCRYPT, ['cost' => 12]);
+
+            // ── Create superadmin user (pre-verified) ────────────────────
+            $stmt = $conn->prepare(
+                "INSERT INTO users
+                    (name, email, password, role, is_verified, shop_id)
+                 VALUES (?, ?, ?, 'superadmin', 1, NULL)"
+            );
+            $stmt->execute([
+                $data->name,
+                $data->email,
+                $hashedPassword,
+            ]);
+
+            $conn->commit();
+
+            http_response_code(201);
+            echo json_encode([
+                "message" => "Developer account created successfully! You can now sign in.",
+            ]);
+
+        } catch (\Exception $e) {
+            $conn->rollBack();
+            http_response_code(500);
+            echo json_encode(["message" => "Registration failed. Please try again."]);
+        }
+    }
 }
 

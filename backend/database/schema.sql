@@ -30,13 +30,4 @@ CREATE TABLE IF NOT EXISTS users (
     FOREIGN KEY (shop_id) REFERENCES shops(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- ── Seed: default superadmin (password: superadmin123) ───────────────────────
--- You can change the email/password after setup.
-INSERT IGNORE INTO users (shop_id, name, email, password, role)
-VALUES (
-    NULL,
-    'Super Admin',
-    'superadmin@pos.com',
-    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', -- password
-    'superadmin'
-);
+

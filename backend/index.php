@@ -93,6 +93,12 @@ if (str_starts_with($uri, '/api/auth')) {
     exit;
 }
 
+// ── Subscription routes — manage shop subscriptions
+if (str_starts_with($uri, '/api/subscriptions')) {
+    require_once __DIR__ . "/routes/subscriptions.php";
+    exit;
+}
+
 // ── Super Admin routes — platform-wide oversight
 if (str_starts_with($uri, '/api/super')) {
     require_once __DIR__ . "/routes/super.php";
@@ -156,6 +162,12 @@ if (str_starts_with($uri, '/api/workers')) {
 // ── Razorpay webhooks — no JWT here; the payload is verified by HMAC signature
 if (str_starts_with($uri, '/api/webhooks')) {
     require_once __DIR__ . "/routes/webhooks.php";
+    exit;
+}
+
+// ── Notifications — shop notifications (stock alerts, refunds, etc.)
+if (str_starts_with($uri, '/api/notifications')) {
+    require_once __DIR__ . "/routes/notifications.php";
     exit;
 }
 

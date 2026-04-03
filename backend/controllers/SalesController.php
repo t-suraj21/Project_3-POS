@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . "/../config/database.php";
 require_once __DIR__ . "/../utils/BillingHelper.php";
+require_once __DIR__ . "/../controllers/NotificationController.php";
 
 class SalesController
 {
@@ -188,6 +189,19 @@ class SalesController
             $refundStatus = $isPartial ? 'partial' : 'full';
             $conn->prepare("UPDATE sales SET status = 'refunded', refund_status = ?, refund_id = ?, refunded_at = NOW() WHERE id = ?")
                  ->execute([$refundStatus, $refundId, $id]);
+
+            // Create notification for refund
+            $refundTypeMsg = $isPartial ? "Partial refund" : "Full refund";
+            NotificationController::createNotification(
+                $shopId,
+                'refund_completed',
+                '✅ ' . $refundTypeMsg . ' Processed',
+                "Refund of ₹" . number_format($refundAmount, 2) . " has been processed successfully for sale #" . $sale['bill_number'],
+                'sale',
+                $id,
+                '/shop/' . $shopId . '/orders/refunded',
+                'high'
+            );
 
             $conn->commit();
             echo json_encode([

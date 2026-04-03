@@ -15,6 +15,7 @@
  * so a shop owner can never see or modify another shop's inventory.
  */
 require_once __DIR__ . "/../config/database.php";
+require_once __DIR__ . "/../controllers/NotificationController.php";
 
 class InventoryController
 {
@@ -259,6 +260,37 @@ class InventoryController
                 $quantityChange, $beforeStock, $afterStock,
                 $note, $userId > 0 ? $userId : null,
             ]);
+
+            // 3. Check if stock has reached alert level and create notification
+            $alertStmt = $conn->prepare("SELECT alert_stock FROM products WHERE id = ? AND shop_id = ?");
+            $alertStmt->execute([$productId, $shopId]);
+            $alertData = $alertStmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($alertData && $afterStock <= $alertData['alert_stock'] && $afterStock > 0) {
+                // Create low stock notification
+                NotificationController::createNotification(
+                    $shopId,
+                    'low_stock',
+                    '⚠️ Low Stock Alert',
+                    "{$product['name']} stock is now {$afterStock} (alert threshold: {$alertData['alert_stock']})",
+                    'product',
+                    $productId,
+                    '/shop/' . $shopId . '/inventory',
+                    'high'
+                );
+            } elseif ($alertData && $afterStock === 0) {
+                // Create out of stock notification
+                NotificationController::createNotification(
+                    $shopId,
+                    'stock_alert',
+                    '📦 Out of Stock',
+                    "{$product['name']} is now out of stock",
+                    'product',
+                    $productId,
+                    '/shop/' . $shopId . '/products',
+                    'critical'
+                );
+            }
 
             $conn->commit();
 
