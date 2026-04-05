@@ -27,14 +27,23 @@ if (file_exists(__DIR__ . "/.env")) {
 }
 
 // ─── CORS Headers ─────────────────────────────────────────────────────────────
-// Configure CORS to allow only your frontend URL
-// In development: allow localhost:5173
-// In production: set to your actual domain
-$allowedOrigin = $_ENV['FRONTEND_URL'] ?? 'http://localhost:5173';
+// Configure CORS to allow frontend requests
+$isProduction = ($_ENV['APP_ENV'] ?? 'development') === 'production';
+$allowedOrigins = [
+    'http://localhost:5173',      // Vite dev server
+    'http://localhost:3000',      // Alternative port
+    'http://127.0.0.1:5173',      // Loopback
+];
+
+// In production, use FRONTEND_URL from .env
+if ($isProduction) {
+    $allowedOrigins = [$_ENV['FRONTEND_URL'] ?? 'http://localhost:5173'];
+}
+
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
-// Validate origin against allowed list
-if ($origin === $allowedOrigin || $origin === str_replace('http://', 'https://', $allowedOrigin)) {
+// Allow CORS if origin is in whitelist
+if (in_array($origin, $allowedOrigins)) {
     header("Access-Control-Allow-Origin: $origin");
     header("Access-Control-Allow-Credentials: true");
 }
