@@ -68,8 +68,81 @@ export const AuthProvider = ({ children }) => {
     setShopName("");
   }, []);
 
+  /**
+   * ════════════════════════════════════════════════════════════════════════════════
+   * MULTI-TENANT HELPERS — Shop Data Isolation
+   * ════════════════════════════════════════════════════════════════════════════════
+   */
+
+  /**
+   * Get the shop_id from the current user.
+   * Returns null if user is superadmin (can see all shops).
+   *
+   * Use this when you need to filter data by shop in API calls.
+   * The backend already enforces this, but the frontend should know
+   * which shop to filter for.
+   */
+  const getShopId = useCallback(() => {
+    if (!user) return null;
+    // user.shop_id comes from the JWT token (see backend/utils/jwt.php)
+    return user.shop_id || null;
+  }, [user]);
+
+  /**
+   * Check if current user is a superadmin.
+   * Only superadmins have role = 'superadmin' and shop_id = null
+   *
+   * SuperAdmins can see all shops and all data.
+   * Regular users (shop_admin, manager, etc.) can only see their own shop.
+   */
+  const isSuperAdmin = useCallback(() => {
+    return user?.role === "superadmin";
+  }, [user]);
+
+  /**
+   * Check if current user can write/modify data.
+   * Only these roles can create/update/delete:
+   *   - shop_admin
+   *   - manager
+   *   - stock_manager
+   *   - account_worker
+   *   - sales_worker
+   *
+   * Cashiers (read-only) cannot.
+   */
+  const canWrite = useCallback(() => {
+    const writableRoles = [
+      "shop_admin",
+      "manager",
+      "stock_manager",
+      "account_worker",
+      "sales_worker",
+    ];
+    return user && writableRoles.includes(user.role);
+  }, [user]);
+
+  /**
+   * Check if user is authenticated
+   */
+  const isAuthenticated = useCallback(() => {
+    return !!user;
+  }, [user]);
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, shopName, setShopName }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        logout,
+        shopName,
+        setShopName,
+        // ✅ Multi-tenant helpers
+        getShopId,
+        isSuperAdmin,
+        canWrite,
+        isAuthenticated,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
