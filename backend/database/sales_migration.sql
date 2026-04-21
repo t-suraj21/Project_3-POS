@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS sales (
     customer_id    INT          NULL,
     customer_name  VARCHAR(200) NULL,
     customer_phone VARCHAR(30)  NULL,
+    customer_address VARCHAR(255) NULL,
     subtotal       DECIMAL(12,2) NOT NULL DEFAULT 0,
     discount       DECIMAL(12,2)          DEFAULT 0,
     tax_amount     DECIMAL(12,2)          DEFAULT 0,
@@ -25,6 +26,10 @@ CREATE TABLE IF NOT EXISTS sales (
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (shop_id) REFERENCES shops(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+ALTER TABLE sales
+    ADD COLUMN IF NOT EXISTS customer_address VARCHAR(255) NULL
+        AFTER customer_phone;
 
 -- ── sale_items ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS sale_items (

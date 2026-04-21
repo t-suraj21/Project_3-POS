@@ -246,6 +246,7 @@ CREATE TABLE IF NOT EXISTS sales (
     customer_id    INT          NULL,
     customer_name  VARCHAR(200) NULL,
     customer_phone VARCHAR(30)  NULL,
+    customer_address VARCHAR(255) NULL,
     subtotal       DECIMAL(12,2) NOT NULL DEFAULT 0,
     discount       DECIMAL(12,2)          DEFAULT 0,
     tax_amount     DECIMAL(12,2)          DEFAULT 0,

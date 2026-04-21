@@ -17,25 +17,30 @@ class NotificationController
         $offset = isset($_GET['offset']) ? (int) $_GET['offset'] : 0;
         $type = isset($_GET['type']) ? $_GET['type'] : null;
 
+        $limit = max(1, min($limit, 200));
+        $offset = max(0, $offset);
+
         // Build query
         $query = "
             SELECT *
             FROM notifications
-            WHERE shop_id = ?
+            WHERE shop_id = :shop_id
         ";
-        $params = [$shopId];
 
         if ($type) {
-            $query .= " AND type = ?";
-            $params[] = $type;
+            $query .= " AND type = :type";
         }
 
-        $query .= " ORDER BY is_read ASC, created_at DESC LIMIT ? OFFSET ?";
-        $params[] = $limit;
-        $params[] = $offset;
+        $query .= " ORDER BY is_read ASC, created_at DESC LIMIT :limit OFFSET :offset";
 
         $stmt = $conn->prepare($query);
-        $stmt->execute($params);
+        $stmt->bindValue(':shop_id', $shopId, PDO::PARAM_INT);
+        if ($type) {
+            $stmt->bindValue(':type', $type, PDO::PARAM_STR);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
         $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Get unread count

@@ -43,7 +43,7 @@ class RateLimiter
      * @param int $requestLimit   Override default limit for this specific endpoint
      * @return array              ['allowed' => bool, 'headers' => [...], 'message' => string]
      */
-    public static function checkLimit(string $identifier, int $requestLimit = null): array
+    public static function checkLimit(string $identifier, ?int $requestLimit = null): array
     {
         self::init();
         
@@ -151,7 +151,7 @@ class RateLimiter
  * @param string $endpoint      Unique identifier for this endpoint (e.g., 'POST:/api/auth/login')
  * @param int $requestLimit     Override default limit for this endpoint
  */
-function requireRateLimit(string $endpoint, int $requestLimit = null): void
+function requireRateLimit(string $endpoint, ?int $requestLimit = null): void
 {
     $identifier = RateLimiter::getClientIp() . ':' . $endpoint;
     $check = RateLimiter::checkLimit($identifier, $requestLimit);

@@ -26,6 +26,11 @@ CREATE TABLE IF NOT EXISTS users (
     email      VARCHAR(150)  UNIQUE NOT NULL,
     password   VARCHAR(255)  NOT NULL,
     role       ENUM('superadmin','shop_admin','manager','sales_worker','account_worker','stock_manager','cashier') NOT NULL,
+    is_verified            TINYINT(1)  NOT NULL DEFAULT 0,
+    verification_token     VARCHAR(10) NULL,
+    token_expires_at       DATETIME    NULL,
+    reset_token            VARCHAR(64) NULL,
+    reset_token_expires_at DATETIME    NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (shop_id) REFERENCES shops(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
