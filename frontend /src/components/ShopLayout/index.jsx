@@ -93,7 +93,7 @@ const ShopLayout = ({ children }) => {
   const [catOpen,  setCatOpen]  = useState(
     pathname.includes("/categories") || pathname.includes("/sub-categories")
   );
-  const [acctOpen, setAcctOpen] = useState(pathname.includes("/accounts"));
+  const [acctOpen, setAcctOpen] = useState(pathname.includes("/accounts") || pathname.includes("/suppliers"));
   const [invOpen,  setInvOpen]  = useState(pathname.includes("/inventory"));
 
   const [collapsed,  setCollapsed]  = useState(false);
@@ -274,6 +274,7 @@ const ShopLayout = ({ children }) => {
               <SubMenu open={acctOpen}>
                 <SubItems>
                   <NavLink end to={`${base}/accounts`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Customers</span></NavLink>
+                  <NavLink end to={`${base}/suppliers`} className="sl-sub-link" style={({ isActive }) => ({ ...S.subLinkBase, ...(isActive ? S.subLinkActive : {}) })}><SubDot /><span>Suppliers</span></NavLink>
                 </SubItems>
               </SubMenu>
             )}

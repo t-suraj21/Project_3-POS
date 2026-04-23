@@ -23,6 +23,8 @@ import Categories        from "./pages/shop/Categories";
 import SubCategories     from "./pages/shop/SubCategories";
 import AccountManagement from "./pages/shop/AccountManagement";
 import CustomerDetail    from "./pages/shop/CustomerDetail";
+import Suppliers         from "./pages/shop/Suppliers";
+import SupplierDetail    from "./pages/shop/SupplierDetail";
 import Sales             from "./pages/shop/Sales";
 import Billing           from "./pages/shop/Billing";
 import Orders            from "./pages/shop/Orders";
@@ -123,6 +125,8 @@ function App() {
             <Route path="/shop/:id/sub-categories"                  element={<ProtectedRoute module="categories"><SubCategories /></ProtectedRoute>} />
             <Route path="/shop/:id/accounts"                        element={<ProtectedRoute module="accounts"><AccountManagement /></ProtectedRoute>} />
             <Route path="/shop/:id/accounts/:customerId"            element={<ProtectedRoute module="accounts"><CustomerDetail /></ProtectedRoute>} />
+            <Route path="/shop/:id/suppliers"                       element={<ProtectedRoute module="accounts"><Suppliers /></ProtectedRoute>} />
+            <Route path="/shop/:id/suppliers/:supplierId"           element={<ProtectedRoute module="accounts"><SupplierDetail /></ProtectedRoute>} />
             <Route path="/shop/:id/sales"                           element={<ProtectedRoute module="sales"><Sales /></ProtectedRoute>} />
             <Route path="/shop/:id/billing"                         element={<ProtectedRoute module="sales"><Billing /></ProtectedRoute>} />
             <Route path="/shop/:id/orders"           element={<ProtectedRoute module="sales"><Orders filter="all" /></ProtectedRoute>} />

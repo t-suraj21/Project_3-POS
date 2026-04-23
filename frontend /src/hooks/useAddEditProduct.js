@@ -9,6 +9,7 @@ const EMPTY_FORM = {
   sku:         "",
   barcode:     "",
   category_id: "",
+  supplier_id: "",
   brand:       "",
   description: "",
   cost_price:  "",
@@ -53,6 +54,13 @@ export const useAddEditProduct = () => {
   const [newCatSaving, setNewCatSaving] = useState(false);
   const [newCatError,  setNewCatError]  = useState(null);
 
+  // ── Inline supplier creation modal ────────────────────────────────
+  const [allSuppliers,   setAllSuppliers]   = useState([]);
+  const [supplierModal,  setSupplierModal]  = useState(false);
+  const [newSupplierName,setNewSupplierName]= useState("");
+  const [newSupplierSaving, setNewSupplierSaving] = useState(false);
+  const [newSupplierError, setNewSupplierError] = useState(null);
+
   // ── Derived category lists ─────────────────────────────────────────
   const parentCats = allCategories.filter((c) => !c.parent_id || c.parent_id === "0");
   const subCats    = allCategories.filter((c) => String(c.parent_id) === String(parentCatId));
@@ -65,7 +73,17 @@ export const useAddEditProduct = () => {
     } catch { /* silent */ }
   }, []);
 
-  useEffect(() => { fetchCategories(); }, [fetchCategories]);
+  const fetchSuppliers = useCallback(async () => {
+    try {
+      const res = await api.get("/api/suppliers");
+      setAllSuppliers(res.data?.suppliers || []);
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => { 
+    fetchCategories(); 
+    fetchSuppliers();
+  }, [fetchCategories, fetchSuppliers]);
 
   // ── Load existing product when editing ────────────────────────────
   useEffect(() => {
@@ -81,6 +99,7 @@ export const useAddEditProduct = () => {
           sku:         p.sku         || "",
           barcode:     p.barcode     || "",
           category_id: p.category_id || "",
+          supplier_id: p.supplier_id || "",
           brand:       p.brand       || "",
           description: p.description || "",
           cost_price:  p.cost_price  || "",
@@ -162,6 +181,39 @@ export const useAddEditProduct = () => {
       setNewCatError(err.response?.data?.error || "Failed to create category.");
     } finally {
       setNewCatSaving(false);
+    }
+  };
+
+  // ── Inline supplier creation ──────────────────────────────────────
+  const openSupplierModal = () => {
+    setNewSupplierName("");
+    setNewSupplierError(null);
+    setSupplierModal(true);
+  };
+  const closeSupplierModal = () => { setSupplierModal(false); setNewSupplierError(null); };
+
+  const createSupplier = async () => {
+    if (!newSupplierName.trim()) { setNewSupplierError("Supplier name is required."); return; }
+    setNewSupplierSaving(true);
+    setNewSupplierError(null);
+    try {
+      const body = { name: newSupplierName.trim() };
+      const res = await api.post("/api/suppliers", body);
+      const created = res.data?.supplier;
+
+      // Re-fetch suppliers
+      const listRes = await api.get("/api/suppliers");
+      const updated = listRes.data?.suppliers || [];
+      setAllSuppliers(updated);
+
+      if (created) {
+        setForm((prev) => ({ ...prev, supplier_id: String(created.id) }));
+      }
+      setSupplierModal(false);
+    } catch (err) {
+      setNewSupplierError(err.response?.data?.error || "Failed to create supplier.");
+    } finally {
+      setNewSupplierSaving(false);
     }
   };
 
@@ -257,5 +309,9 @@ export const useAddEditProduct = () => {
     catModal, catModalMode, newCatName, setNewCatName,
     newCatSaving, newCatError,
     openCatModal, closeCatModal, createCategory,
+    // inline supplier creation
+    allSuppliers, supplierModal, newSupplierName, setNewSupplierName,
+    newSupplierSaving, newSupplierError,
+    openSupplierModal, closeSupplierModal, createSupplier,
   };
 };

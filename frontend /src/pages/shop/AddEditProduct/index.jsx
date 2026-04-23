@@ -34,6 +34,9 @@ const AddEditProduct = () => {
     catModal, catModalMode, newCatName, setNewCatName,
     newCatSaving, newCatError,
     openCatModal, closeCatModal, createCategory,
+    allSuppliers, supplierModal, newSupplierName, setNewSupplierName,
+    newSupplierSaving, newSupplierError,
+    openSupplierModal, closeSupplierModal, createSupplier,
   } = useAddEditProduct();
 
   if (loading) return <div style={s.page}><p style={{ color: "#6b7280" }}>Loading…</p></div>;
@@ -470,9 +473,29 @@ const AddEditProduct = () => {
               </Field>
 
               <Field label="Supplier">
-                <select style={s.select} disabled>
-                  <option>Select supplier</option>
-                </select>
+                <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+                  <select
+                    style={{ ...s.select, flex: 1 }}
+                    name="supplier_id"
+                    value={form.supplier_id}
+                    onChange={handleChange}
+                  >
+                    <option value="">
+                      {allSuppliers.length === 0 ? "No suppliers yet — click + New" : "Select supplier"}
+                    </option>
+                    {allSuppliers.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    style={s.addCatBtn}
+                    onClick={openSupplierModal}
+                    title="Create a new supplier"
+                  >
+                    + New
+                  </button>
+                </div>
               </Field>
             </div>
 
@@ -541,6 +564,52 @@ const AddEditProduct = () => {
                 disabled={newCatSaving}
               >
                 {newCatSaving ? "Creating…" : "Create"}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ══ Inline Supplier Creation Modal ═══════════════════════════ */}
+      {supplierModal && (
+        <div style={s.modalOverlay} onClick={closeSupplierModal}>
+          <div style={s.modalBox} onClick={(e) => e.stopPropagation()}>
+
+            <div style={s.modalHead}>
+              📦 Add New Supplier
+            </div>
+
+            <input
+              style={s.input}
+              autoFocus
+              placeholder="Supplier name (e.g. ABC Distributors)"
+              value={newSupplierName}
+              onChange={(e) => setNewSupplierName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter")  { e.preventDefault(); createSupplier(); }
+                if (e.key === "Escape") closeSupplierModal();
+              }}
+            />
+
+            {newSupplierError && <div style={s.modalError}>{newSupplierError}</div>}
+
+            <div style={s.modalActions}>
+              <button
+                type="button"
+                style={s.modalCancelBtn}
+                onClick={closeSupplierModal}
+                disabled={newSupplierSaving}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                style={s.modalSaveBtn(newSupplierSaving)}
+                onClick={createSupplier}
+                disabled={newSupplierSaving}
+              >
+                {newSupplierSaving ? "Creating…" : "Create"}
               </button>
             </div>
 
