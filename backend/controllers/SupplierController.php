@@ -108,7 +108,7 @@ class SupplierController
             $supplier['remaining_balance'] = (float) $supplier['remaining_balance'];
 
             $p_stmt = $conn->prepare("
-                SELECT id, shop_id, supplier_id, product_name, quantity, cost_price, 
+                SELECT id, shop_id, supplier_id, product_name, quantity, unit, cost_price, 
                        total_amount, note, created_at 
                 FROM supplier_purchases 
                 WHERE supplier_id = ? AND shop_id = ? 
@@ -157,62 +157,139 @@ class SupplierController
         self::requireWritePermission($user);
         global $conn;
 
-        $data = json_decode(file_get_contents("php://input"), true) ?? [];
-        
-        // Validate required fields
+        $data   = json_decode(file_get_contents("php://input"), true) ?? [];
+        $shopId = (int) $user['shop_id'];
+
+        // ── Validate required fields ──────────────────────────────────
         if (empty($data['name'])) {
             http_response_code(422);
             echo json_encode(["error" => "Supplier name is required"]);
             return;
         }
 
+        // ── Sanitise basic fields ─────────────────────────────────────
+        $email   = !empty($data['email'])   ? trim($data['email'])   : null;
+        $phone   = !empty($data['phone'])   ? trim($data['phone'])   : null;
+        $address = !empty($data['address']) ? trim($data['address']) : null;
+
+        // ── Process products array ────────────────────────────────────
+        $products = [];
+        if (!empty($data['products']) && is_array($data['products'])) {
+            foreach ($data['products'] as $p) {
+                $name  = trim($p['product_name'] ?? '');
+                $qty   = max(0.001, (float) ($p['quantity'] ?? 1));
+                $unit  = trim($p['unit'] ?? 'pcs');
+                $price = max(0, (float) ($p['cost_price'] ?? 0));
+                $note  = trim($p['note'] ?? '');
+                if ($name !== '' && $price > 0) {
+                    $products[] = [
+                        'product_name' => $name,
+                        'quantity'     => $qty,
+                        'unit'         => $unit ?: 'pcs',
+                        'cost_price'   => $price,
+                        'total_amount' => round($qty * $price, 2),
+                        'note'         => $note ?: null,
+                    ];
+                }
+            }
+        }
+
+        // ── Calculate totals ─────────────────────────────────────────
+        $totalPurchased = array_sum(array_column($products, 'total_amount'));
+        $paidAmount     = max(0, (float) ($data['paid_amount'] ?? 0));
+
+        // Paid cannot exceed total
+        if ($paidAmount > $totalPurchased && $totalPurchased > 0) {
+            $paidAmount = $totalPurchased;
+        }
+
+        $remainingBalance = round($totalPurchased - $paidAmount, 2);
+        $status = ($remainingBalance <= 0 && $totalPurchased > 0) ? 'cleared' : 'active';
+
+        $conn->beginTransaction();
         try {
+            // 1. Insert supplier ──────────────────────────────────────
             $stmt = $conn->prepare("
-                INSERT INTO suppliers (shop_id, name, email, phone, address, total_purchased, total_paid, remaining_balance, status)
+                INSERT INTO suppliers
+                    (shop_id, name, email, phone, address,
+                     total_purchased, total_paid, remaining_balance, status)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
-            
-            $email = !empty($data['email']) ? trim($data['email']) : null;
-            $phone = !empty($data['phone']) ? trim($data['phone']) : null;
-            $address = !empty($data['address']) ? trim($data['address']) : null;
-            
             $stmt->execute([
-                (int) $user['shop_id'],
+                $shopId,
                 trim($data['name']),
                 $email,
                 $phone,
                 $address,
-                0,  // total_purchased
-                0,  // total_paid
-                0,  // remaining_balance
-                'active'  // status
+                $totalPurchased,
+                $paidAmount,
+                $remainingBalance,
+                $status,
             ]);
-
             $newId = (int) $conn->lastInsertId();
-            
-            // Fetch the created supplier with all fields
+
+            // 2. Insert each product purchase ─────────────────────────
+            if (!empty($products)) {
+                $pStmt = $conn->prepare("
+                    INSERT INTO supplier_purchases
+                        (shop_id, supplier_id, product_name, quantity, unit, cost_price, total_amount, note)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                foreach ($products as $p) {
+                    $pStmt->execute([
+                        $shopId,
+                        $newId,
+                        $p['product_name'],
+                        $p['quantity'],
+                        $p['unit'],
+                        $p['cost_price'],
+                        $p['total_amount'],
+                        $p['note'],
+                    ]);
+                }
+            }
+
+            // 3. Record initial payment if any ────────────────────────
+            if ($paidAmount > 0) {
+                $payMode = in_array($data['payment_mode'] ?? '', ['cash','upi','card','bank_transfer'])
+                    ? $data['payment_mode']
+                    : 'cash';
+                $payNote = !empty($data['payment_note']) ? trim($data['payment_note']) : 'Initial payment';
+
+                $payStmt = $conn->prepare("
+                    INSERT INTO supplier_payments
+                        (shop_id, supplier_id, amount, payment_mode, note)
+                    VALUES (?, ?, ?, ?, ?)
+                ");
+                $payStmt->execute([$shopId, $newId, $paidAmount, $payMode, $payNote]);
+            }
+
+            $conn->commit();
+
+            // 4. Fetch back the created supplier ──────────────────────
             $s2 = $conn->prepare("
-                SELECT id, shop_id, name, email, phone, address, 
-                       total_purchased, total_paid, remaining_balance, 
+                SELECT id, shop_id, name, email, phone, address,
+                       total_purchased, total_paid, remaining_balance,
                        status, created_at, updated_at
-                FROM suppliers 
-                WHERE id = ?
+                FROM suppliers WHERE id = ?
             ");
             $s2->execute([$newId]);
             $newSupplier = $s2->fetch(PDO::FETCH_ASSOC);
 
-            // Format numeric fields
-            $newSupplier['total_purchased'] = (float) $newSupplier['total_purchased'];
-            $newSupplier['total_paid'] = (float) $newSupplier['total_paid'];
+            $newSupplier['total_purchased']   = (float) $newSupplier['total_purchased'];
+            $newSupplier['total_paid']         = (float) $newSupplier['total_paid'];
             $newSupplier['remaining_balance'] = (float) $newSupplier['remaining_balance'];
 
             http_response_code(201);
             echo json_encode([
-                "success" => true,
-                "message" => "Supplier created successfully",
-                "supplier" => $newSupplier
+                "success"        => true,
+                "message"        => "Supplier created successfully",
+                "supplier"       => $newSupplier,
+                "purchase_count" => count($products),
             ]);
+
         } catch (Exception $e) {
+            $conn->rollBack();
             http_response_code(500);
             echo json_encode([
                 "error" => "Failed to create supplier: " . $e->getMessage()

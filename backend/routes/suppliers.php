@@ -1,9 +1,11 @@
 <?php
 
-require_once __DIR__ . "/../middleware/AuthMiddleware.php";
+require_once __DIR__ . "/../middleware/authMiddleware.php";
+require_once __DIR__ . "/../middleware/roleMiddleware.php";
 require_once __DIR__ . "/../controllers/SupplierController.php";
 
-$user = AuthMiddleware::verifyToken();
+// Allow all shop roles that can manage accounts/suppliers
+$user = verifyRole(['shop_admin', 'manager', 'account_worker', 'stock_manager', 'sales_worker', 'cashier']);
 $method = $_SERVER['REQUEST_METHOD'];
 
 // Route parsing

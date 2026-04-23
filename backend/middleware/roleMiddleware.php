@@ -28,6 +28,7 @@ const MODULE_ROLE_MAP = [
     'categories'     => ['shop_admin', 'manager', 'stock_manager'],
     'inventory'      => ['shop_admin', 'manager', 'stock_manager'],
     'accounts'       => ['shop_admin', 'manager', 'account_worker', 'sales_worker', 'cashier'],
+    'suppliers'      => ['shop_admin', 'manager', 'account_worker', 'stock_manager'],
     'sales'          => ['shop_admin', 'manager', 'sales_worker', 'cashier'],
     'reports'        => ['shop_admin', 'manager'],
     'settings'       => ['shop_admin', 'manager'],

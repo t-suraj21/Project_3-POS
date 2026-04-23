@@ -7,7 +7,7 @@ require_once __DIR__ . "/../config/database.php";
 require_once __DIR__ . "/../middleware/authMiddleware.php";
 
 try {
-    $user = AuthMiddleware::verifyToken();
+    $user = authenticate();
     $shopId = (int) $user['shop_id'];
     
     global $conn;
