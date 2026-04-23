@@ -147,13 +147,15 @@ class ProductController
         $whereSQL = implode(' AND ', $where);
 
         $stmt = $conn->prepare("
-            SELECT p.id, p.shop_id, p.category_id, p.name, p.sku, p.barcode,
+            SELECT p.id, p.shop_id, p.category_id, p.supplier_id, p.name, p.sku, p.barcode,
                    p.description, p.brand, p.image,
                    p.cost_price, p.sell_price, p.stock, p.alert_stock,
                    p.gst_percent, p.price_type, p.is_available, p.created_at,
-                   c.name AS category_name, c.parent_id AS category_parent_id
+                   c.name AS category_name, c.parent_id AS category_parent_id,
+                   s.name AS supplier_name
             FROM products p
             LEFT JOIN categories c ON c.id = p.category_id
+            LEFT JOIN suppliers s ON s.id = p.supplier_id
             WHERE {$whereSQL}
             ORDER BY p.created_at DESC
         ");
@@ -175,9 +177,10 @@ class ProductController
         global $conn;
 
         $stmt = $conn->prepare("
-            SELECT p.*, c.name AS category_name
+            SELECT p.*, c.name AS category_name, s.name AS supplier_name
             FROM products p
             LEFT JOIN categories c ON c.id = p.category_id
+            LEFT JOIN suppliers s ON s.id = p.supplier_id
             WHERE p.id = ? AND p.shop_id = ?
         ");
         $stmt->execute([$id, (int) $user['shop_id']]);
@@ -225,16 +228,19 @@ class ProductController
 
         $imagePath = $isMultipart ? self::handleUpload() : null;
 
+        $supplierId = !empty($data['supplier_id']) ? (int) $data['supplier_id'] : null;
+
         $stmt = $conn->prepare("
             INSERT INTO products
-                (shop_id, category_id, name, sku, barcode, description, brand, image,
+                (shop_id, category_id, supplier_id, name, sku, barcode, description, brand, image,
                  cost_price, sell_price, stock, alert_stock, gst_percent, price_type, unit_type)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ");
 
         $stmt->execute([
             $shopId,
             $data['category_id']  ?: null,
+            $supplierId,
             trim($data['name']),
             $data['sku']          ?: null,
             $data['barcode']      ?: null,
@@ -252,6 +258,35 @@ class ProductController
         ]);
 
         $newId = (int) $conn->lastInsertId();
+        
+        // Log purchase transaction if stock > 0 and supplier is selected
+        $stock = (int) ($data['stock'] ?? 0);
+        $costPrice = (float) ($data['cost_price'] ?? 0);
+        
+        if ($supplierId && $stock > 0) {
+            $totalPurchaseAmt = $stock * $costPrice;
+            $s_stmt = $conn->prepare("
+                INSERT INTO supplier_purchases (shop_id, supplier_id, product_name, quantity, cost_price, total_amount, note)
+                VALUES (?, ?, ?, ?, ?, ?, 'Initial Stock')
+            ");
+            $s_stmt->execute([
+                $shopId,
+                $supplierId,
+                trim($data['name']),
+                $stock,
+                $costPrice,
+                $totalPurchaseAmt
+            ]);
+            
+            // Update Supplier's total balances
+            $upd = $conn->prepare("
+                UPDATE suppliers
+                SET total_purchased = total_purchased + ?, remaining_balance = remaining_balance + ?, status = 'active'
+                WHERE id = ? AND shop_id = ?
+            ");
+            $upd->execute([$totalPurchaseAmt, $totalPurchaseAmt, $supplierId, $shopId]);
+        }
+
         $s2 = $conn->prepare("SELECT * FROM products WHERE id = ?");
         $s2->execute([$newId]);
 
@@ -307,9 +342,12 @@ class ProductController
             $imagePath = null;
         }
 
+        $supplierId = !empty($data['supplier_id']) ? (int) $data['supplier_id'] : null;
+
         $stmt = $conn->prepare("
             UPDATE products SET
                 category_id = ?,
+                supplier_id = ?,
                 name        = ?,
                 sku         = ?,
                 barcode     = ?,
@@ -328,6 +366,7 @@ class ProductController
 
         $stmt->execute([
             $data['category_id']  ?: null,
+            $supplierId,
             trim($data['name']),
             $data['sku']          ?: null,
             $data['barcode']      ?: null,

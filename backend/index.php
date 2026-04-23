@@ -138,6 +138,12 @@ if (str_starts_with($uri, '/api/accounts')) {
     exit;
 }
 
+// ── Suppliers — supplier management, purchases, and payments
+if (str_starts_with($uri, '/api/suppliers')) {
+    require_once __DIR__ . "/routes/suppliers.php";
+    exit;
+}
+
 // ── Sales — create bills, list orders, refunds, credit payments
 if (str_starts_with($uri, '/api/sales')) {
     require_once __DIR__ . "/routes/sales.php";
