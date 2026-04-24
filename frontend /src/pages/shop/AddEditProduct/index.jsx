@@ -17,6 +17,10 @@ const Field = ({ label, required, children, style }) => (
 const genSku = () =>
   "SKU-" + Math.random().toString(36).slice(2, 8).toUpperCase();
 
+// Generate a 12-digit numeric barcode
+const genBarcode = () =>
+  Math.floor(Math.random() * 1e12).toString().padStart(12, "0");
+
 const AddEditProduct = () => {
   const fileRef = useRef(null);
   const multiImageRef = useRef(null);
@@ -42,6 +46,90 @@ const AddEditProduct = () => {
   if (loading) return <div style={s.page}><p style={{ color: "#6b7280" }}>Loading…</p></div>;
 
   const displayImage = imagePreview || existingImage;
+
+  const handleBarcodePrint = () => {
+    if (!form.barcode) return;
+
+    const printWindow = window.open("", "_blank", "width=480,height=420");
+    if (!printWindow) return;
+
+    const safeName = JSON.stringify(form.name || "Product").replace(/</g, "\\u003c");
+    const safeCode = JSON.stringify(form.barcode).replace(/</g, "\\u003c");
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Barcode</title>
+          <style>
+            body {
+              margin: 0;
+              padding: 24px;
+              font-family: "Segoe UI", system-ui, sans-serif;
+              color: #111827;
+            }
+            .label {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              gap: 10px;
+            }
+            .product-name {
+              font-size: 16px;
+              font-weight: 700;
+              text-align: center;
+            }
+            .barcode-text {
+              font-family: monospace;
+              letter-spacing: 0.18em;
+              font-size: 12px;
+              color: #374151;
+            }
+            @media print {
+              body { padding: 12px; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="label">
+            <div id="barcode-product" class="product-name"></div>
+            <svg id="barcode"></svg>
+            <div id="barcode-text" class="barcode-text"></div>
+          </div>
+          <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+          <script>
+            (function() {
+              var name = ${safeName};
+              var code = ${safeCode};
+              var nameEl = document.getElementById("barcode-product");
+              var textEl = document.getElementById("barcode-text");
+              if (nameEl) nameEl.textContent = name;
+              if (textEl) textEl.textContent = code;
+              if (window.JsBarcode) {
+                JsBarcode("#barcode", code, {
+                  format: "CODE128",
+                  width: 2,
+                  height: 80,
+                  displayValue: true,
+                  fontSize: 14,
+                  margin: 10,
+                });
+              }
+              setTimeout(function() {
+                window.focus();
+                window.print();
+              }, 250);
+            })();
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
 
   return (
     <div style={s.page}>
@@ -106,13 +194,32 @@ const AddEditProduct = () => {
                 </Field>
 
                 <Field label="Barcode">
-                  <input
-                    style={{ ...s.input, fontFamily: "monospace", letterSpacing: "0.07em" }}
-                    name="barcode"
-                    value={form.barcode}
-                    onChange={handleChange}
-                    placeholder="Scan or enter barcode"
-                  />
+                  <div style={s.skuRow}>
+                    <input
+                      style={{ ...s.skuInput, letterSpacing: "0.07em" }}
+                      name="barcode"
+                      value={form.barcode}
+                      onChange={handleChange}
+                      placeholder="Scan or enter barcode"
+                    />
+                    <button
+                      type="button"
+                      style={s.generateBtn}
+                      onClick={() => setForm((prev) => ({ ...prev, barcode: genBarcode() }))}
+                    >
+                      Generate barcode
+                    </button>
+                  </div>
+                  <div style={s.barcodeActions}>
+                    <button
+                      type="button"
+                      style={s.printBtn(!form.barcode)}
+                      onClick={handleBarcodePrint}
+                      disabled={!form.barcode}
+                    >
+                      🖨️ Print barcode
+                    </button>
+                  </div>
                 </Field>
               </div>
 

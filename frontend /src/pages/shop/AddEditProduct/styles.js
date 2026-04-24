@@ -157,6 +157,26 @@ const s = {
     fontFamily: "inherit",
   },
 
+  barcodeActions: {
+    marginTop: "0.45rem",
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+  },
+
+  printBtn: (disabled) => ({
+    padding: "0.45rem 0.8rem",
+    border: "1px solid #16a34a",
+    borderRadius: "6px",
+    background: disabled ? "#f3f4f6" : "#ecfdf3",
+    color: disabled ? "#9ca3af" : "#16a34a",
+    cursor: disabled ? "not-allowed" : "pointer",
+    fontSize: "0.78rem",
+    fontWeight: 700,
+    whiteSpace: "nowrap",
+    fontFamily: "inherit",
+  }),
+
   textarea: {
     padding: "0.58rem 0.85rem",
     border: "1px solid #e0e7ef",
