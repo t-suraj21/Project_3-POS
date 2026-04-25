@@ -195,11 +195,21 @@ class SupplierController
         }
 
         // ── Calculate totals ─────────────────────────────────────────
-        $totalPurchased = array_sum(array_column($products, 'total_amount'));
-        $paidAmount     = max(0, (float) ($data['paid_amount'] ?? 0));
+        $manualTotal = 0.0;
+        if (isset($data['total_purchased'])) {
+            $manualTotal = (float) $data['total_purchased'];
+        } elseif (isset($data['total_amount'])) {
+            $manualTotal = (float) $data['total_amount'];
+        }
+        $manualTotal = max(0, $manualTotal);
+
+        $totalPurchased = !empty($products)
+            ? array_sum(array_column($products, 'total_amount'))
+            : $manualTotal;
+        $paidAmount = max(0, (float) ($data['paid_amount'] ?? 0));
 
         // Paid cannot exceed total
-        if ($paidAmount > $totalPurchased && $totalPurchased > 0) {
+        if ($paidAmount > $totalPurchased) {
             $paidAmount = $totalPurchased;
         }
 
